@@ -1,0 +1,46 @@
+{
+  "name": "lodgeready",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn partner visa evidence into ImmiAccount-ready PDFs, entirely on your device.",
+  "scripts": {
+    "postinstall": "node scripts/copy-vendor-assets.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "prebuild": "node scripts/copy-vendor-assets.mjs"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
+    "exifr": "7.1.3",
+    "fflate": "0.8.3",
+    "heic2any": "0.0.4",
+    "idb-keyval": "6.3.0",
+    "lucide-react": "1.61.0",
+    "next": "16.4.2",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.4.299",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "stripe": "23.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.56.1",
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
+}
