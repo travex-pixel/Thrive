@@ -107,8 +107,8 @@ export function BuilderApp() {
     else window.setTimeout(warmUp, 1500);
   }, [addThumb, showToast]);
 
-  // Release thumbnail memory when leaving the page.
-  useEffect(() => () => thumbsRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
+  // Thumbnail URLs are revoked on remove/clear. Not on effect cleanup: with Cache Components the
+  // route is hidden (not unmounted) on navigation, and the browser frees object URLs on unload anyway.
 
   /* --------------------------------------------------------- persistence */
   // Save on every change. Writes are serialised and coalesced, so a burst of

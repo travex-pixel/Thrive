@@ -42,7 +42,8 @@ export default function PrivacyPage() {
         is working: for example “builder opened”, “pack built” or “checkout started”. We only send rough counts (such as
         “11–50 files”) and the page address. We <strong>never</strong> send file names, titles, dates, contents or anything
         you type. There are no cookies and no advertising trackers. Events use a random identifier that lasts only for your
-        browser tab session. Statistics are processed by PostHog.
+        browser tab session. Statistics are processed by PostHog. As with any web request, PostHog receives your IP address
+        when an event is sent. We set our analytics project to discard IP addresses rather than store them.
       </p>
 
       <h2>Hosting</h2>

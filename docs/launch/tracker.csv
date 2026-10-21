@@ -1,0 +1,1 @@
+date,channel,ref_code,where (thread/group/creator URL),prospect (handle only - no personal data),qualified (Y/N + why),message_variant,response (Y/N),conversation_notes,objection_verbatim,visited (Y/N/unknown),built_pack (Y/N/unknown),checkout_started (Y/N/unknown),purchased (Y/N),amount_aud,refunded (Y/N),next_step,follow_up_date

@@ -1,0 +1,9 @@
+# Netlify deployment (free plan allows commercial use). Netlify detects Next.js
+# automatically and serves the two API route handlers as serverless functions.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"

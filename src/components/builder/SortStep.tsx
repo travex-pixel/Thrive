@@ -1,8 +1,10 @@
 "use client";
 
 import { Check, Sparkles, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Controls";
+import { Sheet } from "@/components/ui/Sheet";
 import { cx } from "@/components/ui/cx";
 import { CATEGORIES, UNSORTED, type CategoryDef } from "@/lib/pack/categories";
 import { formatDate } from "@/lib/pack/dates";
@@ -47,6 +49,7 @@ export function SortStep({
   onOpenItem: (id: string) => void;
   onConfirmSuggestions: () => void;
 }) {
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const selected = new Set(selection);
   const usable = items.filter((i) => !i.error);
   const suggestedCount = usable.filter((i) => i.suggested).length;
@@ -172,7 +175,7 @@ export function SortStep({
               </option>
             ))}
           </select>
-          <Button variant="danger" onClick={() => onRemove(selection)} aria-label="Remove selected files">
+          <Button variant="danger" onClick={() => setConfirmRemove(true)} aria-label="Remove selected files">
             <Trash2 className="size-5" aria-hidden="true" />
           </Button>
           <Button variant="plain" onClick={onClearSelection}>
@@ -180,6 +183,36 @@ export function SortStep({
           </Button>
         </div>
       ) : null}
+
+      {/* HIG: destructive actions on several items need explicit confirmation. */}
+      <Sheet
+        open={confirmRemove}
+        onClose={() => setConfirmRemove(false)}
+        title={`Remove ${selection.length} ${selection.length === 1 ? "file" : "files"}?`}
+        footer={
+          <div className="flex gap-3">
+            <Button variant="plain" className="flex-1" onClick={() => setConfirmRemove(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1 bg-danger-tint"
+              onClick={() => {
+                onRemove(selection);
+                setConfirmRemove(false);
+              }}
+            >
+              <Trash2 className="size-5" aria-hidden="true" />
+              Remove
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-[0.9375rem] text-label-2">
+          They’ll be removed from this browser. Your original files on your device aren’t affected, so you can add them again
+          any time.
+        </p>
+      </Sheet>
     </div>
   );
 }
