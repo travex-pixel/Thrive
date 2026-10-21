@@ -40,7 +40,7 @@ test.describe("free single-file fixer", () => {
   test("leaves accepted Office files alone and explains why", async ({ page }) => {
     await page.goto("/fix");
     await page.getByTestId("fix-input").setInputFiles(fixture("Relationship statement.docx"));
-    await expect(page.getByText(/already under 5 MB, so no changes are needed/)).toBeVisible();
+    await expect(page.getByText(/already under 5\sMB, so no changes are needed/)).toBeVisible();
   });
 
   test("explains password-protected PDFs", async ({ page }) => {

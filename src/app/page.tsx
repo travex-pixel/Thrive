@@ -31,7 +31,7 @@ const examplePack = [
 ];
 
 const limits = [
-  { icon: Scale, title: "5 MB per file", body: "Anything bigger is rejected. Phone photos and scans add up fast." },
+  { icon: Scale, title: "5 MB per file", body: "Anything bigger is rejected. Phone photos and scans add up fast." },
   { icon: Layers, title: "Limited attachments", body: "Each applicant can only attach so many files, so evidence needs combining." },
   { icon: Ban, title: "No undo", body: "Once your application is submitted, attachments can’t be deleted." },
   { icon: Images, title: "Picky about formats", body: "iPhone HEIC photos and WEBP images aren’t on the accepted list." },
@@ -51,7 +51,7 @@ const steps = [
   {
     icon: FileStack,
     title: "Download your pack",
-    body: "Numbered PDFs in upload order, each with a contents page, documents in date order and every file under 5 MB.",
+    body: "Numbered PDFs in upload order, each with a contents page, documents in date order and every file under 5 MB.",
   },
 ];
 
@@ -90,7 +90,7 @@ const faqs: { q: string; a: React.ReactNode }[] = [
       <>
         Numbered PDFs in upload order: an evidence index, then one PDF per group, each opening with a contents page that
         lists every document with its date and page numbers. Large groups are split into parts so every file stays under
-        5 MB. Identity documents and signed forms stay as separate files.
+        5 MB. Identity documents and signed forms stay as separate files.
       </>
     ),
   },
@@ -150,7 +150,7 @@ export default function Home() {
             </h1>
             <p className="mt-5 max-w-xl text-[1.1875rem] leading-relaxed text-label-2">
               Turn hundreds of photos, statements and screenshots into a tidy set of date-ordered PDFs, with every file under
-              5 MB, a contents page on each and an index to match. Built in your browser, in minutes.
+              5 MB, a contents page on each and an index to match. Built in your browser, in minutes.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/build" size="lg">
@@ -178,7 +178,7 @@ export default function Home() {
             <div className="flex items-center justify-between rounded-t-2xl px-4 pb-2 pt-3">
               <span className="text-[0.8125rem] font-semibold uppercase tracking-wide text-label-3">Example pack</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-success-tint px-2.5 py-0.5 text-[0.8125rem] font-medium text-success">
-                <Check className="size-3.5" aria-hidden="true" /> All under 5 MB
+                <Check className="size-3.5" aria-hidden="true" /> All under 5 MB
               </span>
             </div>
             <ul className="divide-y divide-separator/70">

@@ -45,6 +45,7 @@ export function AddStep({
   };
 
   const inspectingSet = new Set(inspecting);
+  const compact = items.length > 0;
   const errors = items.filter((i) => i.error).length;
   const totalBytes = items.reduce((n, i) => n + i.size, 0);
 
@@ -69,31 +70,46 @@ export function AddStep({
           accept(e.dataTransfer.files);
         }}
         className={cx(
-          "rounded-[var(--radius-card)] border-2 border-dashed p-6 text-center transition-colors sm:p-10",
+          "rounded-[var(--radius-card)] border-2 border-dashed transition-colors",
+          compact ? "flex flex-wrap items-center gap-3 p-3 pl-4" : "p-6 text-center sm:p-10",
           dragging ? "border-accent bg-accent-tint" : "border-separator-strong bg-surface",
         )}
       >
-        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-accent-tint text-accent">
-          <Plus className="size-7" aria-hidden="true" />
-        </span>
-        <p className="mt-4 text-[1.1875rem] font-semibold">Drop files here</p>
-        <p className="mt-1 text-[0.9375rem] text-label-3">PDF, JPG, PNG, HEIC, WEBP, Word and more. Add as many as you like.</p>
-        <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+        {compact ? (
+          <p className="min-w-0 flex-1 text-[0.9375rem] text-label-2">Drop more files here, or</p>
+        ) : (
+          <>
+            <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-accent-tint text-accent">
+              <Plus className="size-7" aria-hidden="true" />
+            </span>
+            <p className="mt-4 text-[1.1875rem] font-semibold">Drop files here</p>
+            <p className="mt-1 text-[0.9375rem] text-label-3">PDF, JPG, PNG, HEIC, WEBP, Word and more. Add as many as you like.</p>
+          </>
+        )}
+        <div className={cx("flex gap-3", compact ? "flex-row" : "mt-6 flex-col items-stretch justify-center sm:flex-row sm:items-center")}>
           <button
             type="button"
             onClick={() => fileInput.current?.click()}
-            className="inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent-fill px-6 text-[1.0625rem] font-semibold text-on-accent transition-transform hover:bg-accent-fill-hover active:scale-[0.98]"
+            className={cx(
+              "inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold transition-transform active:scale-[0.98]",
+              compact
+                ? "min-h-11 bg-accent-tint px-4 text-[0.9375rem] text-accent"
+                : "min-h-[3.25rem] bg-accent-fill px-6 text-[1.0625rem] text-on-accent hover:bg-accent-fill-hover",
+            )}
           >
             <Plus className="size-5" aria-hidden="true" />
-            Choose files
+            {compact ? "Add more files" : "Choose files"}
           </button>
           <button
             type="button"
             onClick={() => folderInput.current?.click()}
-            className="hidden min-h-[3.25rem] items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent-tint px-6 text-[1.0625rem] font-semibold text-accent transition-transform active:scale-[0.98] sm:inline-flex"
+            className={cx(
+              "hidden items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent-tint font-semibold text-accent transition-transform active:scale-[0.98] sm:inline-flex",
+              compact ? "min-h-11 px-4 text-[0.9375rem]" : "min-h-[3.25rem] px-6 text-[1.0625rem]",
+            )}
           >
             <FolderOpen className="size-5" aria-hidden="true" />
-            Choose a folder
+            {compact ? "Folder" : "Choose a folder"}
           </button>
         </div>
         <input

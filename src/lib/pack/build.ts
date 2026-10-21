@@ -516,7 +516,7 @@ async function renderWithinLimit(
     }
     const smaller = await shrinkSegment(segments[0]);
     if (!smaller) {
-      throw new BuildError(`“${segments[0].prep.item.title}” can’t be made smaller than 5 MB. Try splitting it into smaller files.`);
+      throw new BuildError(`“${segments[0].prep.item.title}” can’t be made smaller than 5 MB. Try splitting it into smaller files.`);
     }
     queue.unshift(...packSegments(smaller, CONTENT_BUDGET_BYTES));
   }
@@ -589,7 +589,7 @@ export async function buildPack(items: EvidenceItem[], options: BuildOptions, ct
         for (const [i, part] of parts.entries()) {
           checkAbort(ctx.signal);
           const rendered = parts.length > 1 ? await render(part.segments, `Part ${i + 1} of ${parts.length}`) : await render(part.segments, undefined);
-          if (rendered.bytes.length > IMMI_MAX_BYTES) throw new BuildError(`${docTitle} came out over 5 MB. Please try again.`);
+          if (rendered.bytes.length > IMMI_MAX_BYTES) throw new BuildError(`${docTitle} came out over 5 MB. Please try again.`);
           finalParts.push(rendered);
           step(`Built ${docTitle}${parts.length > 1 ? ` (part ${i + 1})` : ""}`);
         }
@@ -615,7 +615,7 @@ export async function buildPack(items: EvidenceItem[], options: BuildOptions, ct
       const blob = await ctx.getFile(item.id);
       if (blob.size > IMMI_MAX_BYTES) {
         skippedItemIds.push(item.id);
-        warnings.push(`Left out “${item.title}”: it’s over 5 MB. Save it as a PDF and add it again.`);
+        warnings.push(`Left out “${item.title}”: it’s over 5 MB. Save it as a PDF and add it again.`);
         continue;
       }
       outputs.push({
@@ -806,7 +806,7 @@ export async function fixSingleFile(item: EvidenceItem, file: Blob, ctx: Omit<Bu
         return [{ fileName: `${base} (ImmiAccount ready).jpg`, bytes: image.jpeg, mimeType: "image/jpeg" }];
       }
     }
-    throw new BuildError("This image can’t be made smaller than 5 MB.");
+    throw new BuildError("This image can’t be made smaller than 5 MB.");
   }
   if (item.kind !== "pdf") throw new BuildError("Only PDFs and images can be fixed here.");
   const parts = await buildSeparate(item, { ...ctx, getFile: async () => file }, false, "", (label) =>

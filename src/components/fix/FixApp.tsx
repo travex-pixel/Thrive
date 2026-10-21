@@ -32,10 +32,10 @@ export function FixApp() {
       if (item.error) throw new BuildError(item.error);
       if (item.kind === "passthrough") {
         if (file.size <= IMMI_MAX_BYTES) {
-          setStatus({ state: "done", original: { name: file.name, size: file.size }, outputs: [], notes: ["This file type is accepted by ImmiAccount and it’s already under 5 MB, so no changes are needed."] });
+          setStatus({ state: "done", original: { name: file.name, size: file.size }, outputs: [], notes: ["This file type is accepted by ImmiAccount and it’s already under 5 MB, so no changes are needed."] });
           return;
         }
-        throw new BuildError("Office files over 5 MB can’t be shrunk here. Save it as a PDF and drop the PDF in instead.");
+        throw new BuildError("Office files over 5 MB can’t be shrunk here. Save it as a PDF and drop the PDF in instead.");
       }
       item = { ...item, ...(await inspectItem(item, file)) };
       if (item.error) throw new BuildError(item.error);
@@ -46,9 +46,9 @@ export function FixApp() {
       if (isHeic(file.name, file.type)) notes.push("Converted the iPhone HEIC photo to JPG, a format ImmiAccount accepts.");
       if (item.kind === "image" && !isHeic(file.name, file.type)) notes.push("Optimised the photo and fixed its rotation.");
       if (item.encrypted) notes.push("This PDF was locked or unusual, so it was re-rendered as a clean copy. It looks the same, but the text can’t be selected.");
-      if (outputs.length > 1) notes.push(`It was too big for one upload, so it’s been split into ${outputs.length} parts, each under 5 MB.`);
+      if (outputs.length > 1) notes.push(`It was too big for one upload, so it’s been split into ${outputs.length} parts, each under 5 MB.`);
       if (item.kind === "pdf" && !item.encrypted && outputs.length === 1 && outputs[0].bytes.length === file.size) {
-        notes.push("This PDF was already under 5 MB and unlocked. It’s ready to upload as it is.");
+        notes.push("This PDF was already under 5 MB and unlocked. It’s ready to upload as it is.");
       }
       setStatus({ state: "done", original: { name: file.name, size: file.size }, outputs, notes });
       track("fixer_used", { kind: item.kind, result: "ok" });
@@ -164,7 +164,7 @@ export function FixApp() {
       <div className="rounded-[var(--radius-card)] bg-accent-tint p-5">
         <p className="font-semibold">Got dozens of files?</p>
         <p className="mt-1 text-[0.9375rem] text-label-2">
-          The pack builder sorts everything into date-ordered PDFs with contents pages and an index, all under 5 MB.
+          The pack builder sorts everything into date-ordered PDFs with contents pages and an index, all under 5 MB.
         </p>
         <ButtonLink href="/build" className="mt-4" variant="primary">
           Build a whole pack

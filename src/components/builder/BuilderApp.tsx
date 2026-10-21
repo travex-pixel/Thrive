@@ -280,7 +280,7 @@ export function BuilderApp() {
     actionLabel = "Building…";
     actionDisabled = true;
   } else if (state.build.status === "done" && !stale) {
-    hint = `${state.build.result.files.length} files ready`;
+    hint = `${state.build.result.files.length} files ready to upload`;
     action = canDownload ? "downloadAll" : "checkout";
     actionLabel = canDownload ? "Download all" : `Unlock for ${PRICE_LABEL}`;
     actionDisabled = !canDownload && checkout.status === "loading";

@@ -7,7 +7,6 @@ import {
   downloadZip,
   fixture,
   generated,
-  openStep,
   resultNames,
   watchErrors,
   watchExternalRequests,
@@ -65,7 +64,7 @@ test.describe("pack builder", () => {
       "07 Forms & statements - Relationship statement.docx",
     ]);
     // Free pack (10 files): no paywall.
-    await expect(page.getByRole("heading", { name: /Unlock your full pack/ })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Download your full pack/ })).toHaveCount(0);
 
     const files = await downloadZip(page);
     const pages = await assertImmiReady(files);
@@ -147,7 +146,7 @@ test.describe("pack builder", () => {
     await expect(page.getByText(/re-rendered as images/)).toBeVisible();
 
     // 15 files > free limit: downloads are locked behind the paywall.
-    await expect(page.getByRole("heading", { name: /Unlock your full pack/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Download your full pack/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Download all (.zip)" })).toHaveCount(0);
 
     // Payments aren't configured in tests: the real API answers 503 and the UI explains it.

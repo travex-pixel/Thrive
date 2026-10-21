@@ -44,7 +44,7 @@ export function createItem(file: File, addedAt: number): EvidenceItem {
   } else if (kind === "unsupported") {
     item.error = "ImmiAccount doesn’t accept this file type. Save it as a PDF or JPG and add it again.";
   } else if (kind === "passthrough" && file.size > IMMI_MAX_BYTES) {
-    item.error = "Over 5 MB. Save it as a PDF and add the PDF instead.";
+    item.error = "Over 5 MB. Save it as a PDF and add the PDF instead.";
   }
   return item;
 }
