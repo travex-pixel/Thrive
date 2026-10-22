@@ -64,6 +64,7 @@ export type Action =
   | { type: "remove"; ids: string[] }
   | { type: "move"; ids: string[]; category: CategoryId }
   | { type: "confirmDates"; ids: string[] }
+  | { type: "markUploaded"; ids: string[]; uploaded: boolean }
   | { type: "settings"; patch: Partial<Settings> }
   | { type: "step"; step: Step }
   | { type: "select"; ids: string[]; selected: boolean }
@@ -134,6 +135,14 @@ export function reducer(state: State, action: Action): State {
       return {
         ...state,
         items: state.items.map((i) => (ids.has(i.id) && i.date ? { ...i, dateSource: "user" } : i)),
+      };
+    }
+    case "markUploaded": {
+      const ids = new Set(action.ids);
+      return {
+        ...state,
+        items: state.items.map((i) => (ids.has(i.id) ? { ...i, uploaded: action.uploaded } : i)),
+        selection: [],
       };
     }
     case "settings":

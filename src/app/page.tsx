@@ -148,8 +148,8 @@ const faqs: { q: string; a: React.ReactNode }[] = [
     q: "Can I add more evidence later?",
     a: (
       <>
-        Yes, but don’t upload the same files twice: attachments can’t be removed. Build a pack of only the new files, and set
-        “First file number” in the settings so the numbering carries on from your last upload.
+        Yes, without uploading anything twice (attachments can’t be removed). After you upload a pack, mark it as uploaded:
+        its files are left out of your next pack, and the numbering carries on from your last file.
       </>
     ),
   },

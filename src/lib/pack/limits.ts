@@ -10,10 +10,12 @@ export const TARGET_BYTES = 4_600_000;
 
 /**
  * Home Affairs' help says there is a limit to the number of files that can be attached for each applicant, and that it
- * depends on the application type. Figures quoted elsewhere differ (30, 60, 100), so we don't assume one: once a pack
- * has more than the lowest figure seen, the user is asked for theirs. "Other" allows any value.
+ * depends on the application type. Search results (22 Oct 2026) attribute "30 to 60 depending on the application type"
+ * to the ImmiAccount how-to page (elp-h2526) and its PDF guide, but those pages couldn't be fetched to quote exactly,
+ * and a third-party blog says 100 for partner visas. So the app never states a number: once a pack has more than the
+ * lowest figure seen, the user is asked for theirs. Presets cover the officially reported figures; "Other" allows any.
  */
-export const ATTACHMENT_LIMIT_PRESETS = [30, 60, 100] as const;
+export const ATTACHMENT_LIMIT_PRESETS = [30, 60] as const;
 export const LOWEST_KNOWN_LIMIT = 30;
 export const ATTACH_HELP_URL = "https://immi.homeaffairs.gov.au/help-text/eplus/Pages/elp-h1075.aspx";
 /** Home Affairs' form for documents that don't fit within the attachment limit. */

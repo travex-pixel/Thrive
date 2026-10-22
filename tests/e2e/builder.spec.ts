@@ -190,6 +190,27 @@ test.describe("pack builder", () => {
     expect(await resultNames(page)).toEqual(["20_Evidence_index.pdf", "21_Financial_evidence.pdf", "22_Identity_Passport_Alex.pdf"]);
   });
 
+  test("marking a pack as uploaded leaves its files out of the next pack", async ({ page }) => {
+    await page.goto("/build");
+    await addFiles(page, [statements(1)[0], generated("Passport - Alex.pdf")]);
+    await openStep(page, "2  Sort");
+    await sortByType(page, { "Bank, loan and pay documents": "financial", "ID documents and certificates": "identity" });
+    await buildPack(page);
+    expect(await resultNames(page)).toEqual(["00_Evidence_index.pdf", "01_Financial_evidence.pdf", "02_Identity_Passport_Alex.pdf"]);
+    await page.getByRole("button", { name: "Mark this pack as uploaded" }).click();
+    await expect(page.getByText(/Your next pack starts at 03/)).toBeVisible();
+
+    // Later: new evidence only, numbered after the last upload.
+    await openStep(page, "1  Add");
+    await page.getByTestId("file-input").setInputFiles([generated("AGL electricity bill 05-2025.pdf")]);
+    await expect(page.getByLabel("Checking file")).toHaveCount(0, { timeout: 60_000 });
+    await openStep(page, "2  Sort");
+    await expect(page.getByRole("heading", { name: /Already uploaded/ })).toBeVisible();
+    await sortByType(page, { "Bills, insurance and accounts": "household" });
+    await buildPack(page);
+    expect(await resultNames(page)).toEqual(["03_Evidence_index.pdf", "04_Household_evidence.pdf"]);
+  });
+
   test("work survives a reload (saved on this device)", async ({ page }) => {
     await page.goto("/build");
     await addFiles(page, [generated("Passport - Alex.pdf"), fixture("IMG_4821.JPG")]);

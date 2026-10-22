@@ -277,9 +277,12 @@ export function BuilderApp() {
     ids.forEach((id) => void removeFile(id).catch(() => undefined));
   }, []);
 
-  const usable = useMemo(() => state.items.filter(isUsable), [state.items]);
-  const plan = useMemo(() => planPack(state.items, state.settings), [state.items, state.settings]);
-  const signature = useMemo(() => packSignature(state.items, state.settings), [state.items, state.settings]);
+  // Files already uploaded to ImmiAccount are kept for reference but never built again.
+  const active = useMemo(() => state.items.filter((i) => !i.uploaded), [state.items]);
+  const uploadedItems = useMemo(() => state.items.filter((i) => i.uploaded), [state.items]);
+  const usable = useMemo(() => active.filter(isUsable), [active]);
+  const plan = useMemo(() => planPack(active, state.settings), [active, state.settings]);
+  const signature = useMemo(() => packSignature(active, state.settings), [active, state.settings]);
   const stale = state.build.status === "done" && state.build.signature !== signature;
   // Judged on the pack that was actually built, never on the current list.
   const canDownload = state.build.status === "done" && (state.unlocked || state.build.result.itemCount <= FREE_ITEM_LIMIT);
@@ -301,7 +304,7 @@ export function BuilderApp() {
     track("build_started", { files_bucket: bucket(usable.length) });
     try {
       const result = await buildPack(
-        state.items,
+        active,
         {
           attachmentLimit: state.settings.attachmentLimit,
           includeIndex: state.settings.includeIndex,
@@ -344,7 +347,7 @@ export function BuilderApp() {
     } finally {
       void wakeLock?.release().catch(() => undefined);
     }
-  }, [signature, state.items, state.settings, state.unlocked, usable.length]);
+  }, [active, signature, state.settings, state.unlocked, usable.length]);
 
   /* ------------------------------------------------------------ checkout */
   const unlockWith = useCallback(
@@ -486,6 +489,19 @@ export function BuilderApp() {
     }
   }, [canDownload, showToast, stale, state.build]);
 
+  /** After uploading a pack: leave its files out of later packs and carry the numbering on. */
+  const markPackUploaded = useCallback(() => {
+    if (state.build.status !== "done") return;
+    const files = state.build.result.files;
+    const ids = [...new Set(files.flatMap((f) => f.entries.map((e) => e.itemId)))];
+    const last = Math.max(...files.map((f) => Number(/^(\d+)_/.exec(f.fileName)?.[1] ?? 0)));
+    dispatch({ type: "markUploaded", ids, uploaded: true });
+    dispatch({ type: "settings", patch: { startNumber: last + 1 } });
+    dispatch({ type: "buildReset" });
+    track("pack_marked_uploaded", { files_bucket: bucket(ids.length) });
+    showToast(`Marked ${ids.length} ${ids.length === 1 ? "file" : "files"} as uploaded. Your next pack starts at ${String(last + 1).padStart(2, "0")}.`);
+  }, [showToast, state.build]);
+
   const goTo = (step: Step) => {
     dispatch({ type: "step", step });
     track("step_viewed", { kind: step });
@@ -595,7 +611,9 @@ export function BuilderApp() {
           />
         ) : state.step === "sort" ? (
           <SortStep
-            items={state.items}
+            items={active}
+            uploadedItems={uploadedItems}
+            onMarkUploaded={(ids, uploaded) => dispatch({ type: "markUploaded", ids, uploaded })}
             selection={state.selection}
             thumbs={thumbs}
             onMove={(ids, category: CategoryId) => dispatch({ type: "move", ids, category })}
@@ -640,6 +658,7 @@ export function BuilderApp() {
               track("preview_opened", { kind: file.kind });
             }}
             unlockLink={state.unlocked ? state.unlockLink : null}
+            onMarkPackUploaded={markPackUploaded}
             onCheckDates={() => {
               goTo("sort");
               setDatesOpen(true);

@@ -30,6 +30,7 @@ export type AnalyticsEvent =
   | "purchase_verified"
   | "download_clicked"
   | "unlock_link_saved"
+  | "pack_marked_uploaded"
   | "in_app_browser"
   | "storage_full"
   | "fixer_used";

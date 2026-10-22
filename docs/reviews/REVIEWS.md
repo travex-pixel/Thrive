@@ -97,7 +97,7 @@ sale is reaching couples in the weeks before they lodge, not the product.
 |---|---|---|---|---|
 | A-H1 | High | Free tier counted "files" ambiguously (input documents vs output PDFs) and "preview a pack of any size" wasn't true while locked | "Up to 10 documents (any number of pages)"; "attachments" for outputs; a real watermarked preview now exists (see C1) | E2E restore/preview test; screenshots |
 | A-H2 | High | Launch called "A$0" but trading as "LodgeReady" needs an ABN and a business name (~A$45 a year) | Checklist retitled A$0–45; "Before the first live sale" decisions added; REPORT corrected | Docs |
-| A-H3 | High | "30 to 60 attachments" was credited to Home Affairs, but the only source is a 2015 embassy guide; a migration blog says 100 for partner visas | No range is quoted any more: "the limit depends on the application type, check yours"; presets 30/60/100/Other; link to Home Affairs' additional-documents form | E2E limit test |
+| A-H3 | High | "30 to 60 attachments" was credited to Home Affairs, but the only source is a 2015 embassy guide; a migration blog says 100 for partner visas | No range is quoted any more: "the limit depends on the application type, check yours"; presets 30/60/Other (search results attribute "30 to 60" to Home Affairs' own how-to page, which couldn't be fetched to quote; no official source for 100); link to Home Affairs' additional-documents form | E2E limit test |
 | A-M1 | Medium | Example pack assumed unlocked statements | Caption says so, and that locked ones take more space | Screenshot |
 | A-M2 | Medium | Refunds and shared links never switched off an unlock | Verify refuses refunded/disputed payments; `REVOKED_SESSIONS` switch; terms say so (already-unlocked browsers keep working offline: accepted) | Typecheck; code review |
 | A-M3 | Medium | Netlify free plan's 300-credit cap (15 per production deploy; sites pause when exhausted) undocumented | Documented, with a plan | Docs |
@@ -116,7 +116,7 @@ sale is reaching couples in the weeks before they lodge, not the product.
 | C4 | High | After a self-unlock, the unlock link was never shown | "Save your unlock link" card (copy, email to myself) after unlocking and in the privacy sheet | E2E restore test |
 | C5 | High | A pack over the limit was shown as "ready"; earlier uploads not counted | "Over your attachment limit" result with one-tap fixes; earlier uploads count | Unit test; screenshot |
 | C6 | High | Not tested at real sizes or in Safari; in-app browsers (Facebook, Instagram, TikTok) break downloads | In-app-browser banner; new funnel events (`build_started`, `over_limit`…). **Real-device tests can't be done here: founder action** | — |
-| C7–C13 | Medium | Too many notices; "files" meant three things; groups unexplained; price shown late; checkout loose ends; no bulk labelling; adding evidence later | Wording unified (files in, attachments out); raster note moved onto each file; price line in Add; "I've paid" says when nothing arrived; Cancel; checkout tab shows only "Close this tab"; restore happens in place; no bulk move for "Couldn't tell". Deferred: bulk labelling, "mark as uploaded", undo | E2E |
+| C7–C13 | Medium | Too many notices; "files" meant three things; groups unexplained; price shown late; checkout loose ends; no bulk labelling; adding evidence later | Wording unified (files in, attachments out); raster note moved onto each file; price line in Add; "I've paid" says when nothing arrived; Cancel; checkout tab shows only "Close this tab"; restore happens in place; no bulk move for "Couldn't tell". Deferred: bulk labelling, undo ("mark as uploaded" was added later) | E2E |
 | C-L | Low | Broken dates in titles, iPhone screenshots titled as photos, folder-picker "upload" wording, metrics gaps | "2025-01" kept; PNG camera names are "Screenshot (…)"; note under the folder button; events added; purchase counted once from whichever tab confirms | Unit + E2E |
 
 ---
@@ -134,8 +134,16 @@ page with poppler and counts ink (it fails on the old fonts, passes on the new).
 and oversized files, offline building, accessibility with axe, 44 pt targets, checkout and restore with Stripe mocked);
 typecheck and lint clean; screenshots reviewed in light and dark mode.
 
-**Not verified (cannot be done from here):** Safari/WebKit and real phones (the iPhone tests run Chromium); packs of
-150–400 files on a phone; a real Stripe payment; a real ImmiAccount upload of the file-name patterns; the current
+**Stress test (added after the review):** 300 files (120 camera-size photos, 150 statements, 20 screenshots, 10
+locked PDFs; 424 MB) were checked in 10 s and built in 27 s into 8 attachments, all under 5,000,000 bytes with every
+page present; Chromium's renderer peaked at about 690 MB (JavaScript heap under 60 MB). Scripts in `tests/stress/`.
+The plan's photo estimate is deliberately conservative (it predicted 19 attachments).
+
+**Also added after the review:** "Mark this pack as uploaded" (CPO finding 13): uploaded files are kept for reference,
+left out of later packs, and numbering continues; covered by an E2E test.
+
+**Not verified (cannot be done from here):** Safari/WebKit and real phones (the iPhone tests run Chromium); a 300-file
+pack on a real phone; a real Stripe payment; a real ImmiAccount upload of the file-name patterns; the current
 attachment limit for 820/801 and 309/100.
 
 **Decision: GO to validation, conditional on the founder's approvals.** The product does what it says, the claims match

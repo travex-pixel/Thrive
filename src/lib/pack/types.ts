@@ -40,6 +40,11 @@ export interface EvidenceItem {
   encrypted?: boolean;
   /** Human-readable reason this file cannot be used. */
   error?: string;
+  /**
+   * Already uploaded to ImmiAccount in an earlier pack. Left out of new packs (attachments can't be removed, so the
+   * same file must never be uploaded twice), but kept so the applicant can see what's been done.
+   */
+  uploaded?: boolean;
 }
 
 export interface PackSettings {

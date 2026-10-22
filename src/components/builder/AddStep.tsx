@@ -198,6 +198,7 @@ export function AddStep({
                           [
                             formatBytes(item.size),
                             item.pageCount ? `${item.pageCount} ${item.pageCount === 1 ? "page" : "pages"}` : null,
+                            item.uploaded ? "already uploaded" : null,
                             item.encrypted ? "locked PDF: a clean copy will be made" : null,
                             item.date ? formatDate(item.date) : null,
                           ]

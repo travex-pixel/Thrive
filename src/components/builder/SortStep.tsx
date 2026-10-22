@@ -50,6 +50,8 @@ function DateLine({ item }: { item: EvidenceItem }) {
 
 export function SortStep({
   items,
+  uploadedItems,
+  onMarkUploaded,
   selection,
   thumbs,
   onMove,
@@ -63,6 +65,9 @@ export function SortStep({
   onDatesOpen,
 }: {
   items: EvidenceItem[];
+  /** Files already uploaded to ImmiAccount: shown for reference, never built again. */
+  uploadedItems: EvidenceItem[];
+  onMarkUploaded: (ids: string[], uploaded: boolean) => void;
   selection: string[];
   thumbs: Map<string, string>;
   onMove: (ids: string[], category: CategoryId) => void;
@@ -255,6 +260,28 @@ export function SortStep({
         );
       })}
 
+      {uploadedItems.length > 0 ? (
+        <section aria-labelledby="title-uploaded">
+          <h2 id="title-uploaded" className="text-[1.25rem] font-semibold">
+            Already uploaded <span className="font-normal tabular-nums text-label-3">{uploadedItems.length}</span>
+          </h2>
+          <p className="text-[0.875rem] text-label-3">
+            Left out of new packs, so nothing is uploaded twice. Attachments can’t be removed from ImmiAccount.
+          </p>
+          <ul className="mt-2 divide-y divide-separator overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-card">
+            {sortItems(uploadedItems).map((item) => (
+              <li key={item.id} className="flex items-center gap-3 py-2 pl-3 pr-2">
+                <FileThumb item={item} url={thumbs.get(item.id)} />
+                <span className="min-w-0 flex-1 truncate text-label-2">{item.title}</span>
+                <Button variant="plain" className="shrink-0 text-[0.9375rem]" onClick={() => onMarkUploaded([item.id], false)}>
+                  Not uploaded
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {selection.length > 0 ? (
         <div className="sticky bottom-24 z-20 mx-auto flex w-full max-w-xl flex-wrap items-center gap-2 rounded-2xl bg-raised p-2 pl-4 shadow-float ring-1 ring-separator sm:bottom-28">
           <span className="text-[0.9375rem] font-medium tabular-nums">{selection.length} selected</span>
@@ -271,6 +298,9 @@ export function SortStep({
               </option>
             ))}
           </select>
+          <Button variant="plain" onClick={() => onMarkUploaded(selection, true)}>
+            Mark as uploaded
+          </Button>
           <Button variant="danger" onClick={() => setConfirmRemove(true)} aria-label="Remove selected files">
             <Trash2 className="size-5" aria-hidden="true" />
           </Button>

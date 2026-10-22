@@ -60,6 +60,7 @@ export function BuildStep({
   onPreview,
   onCheckDates,
   unlockLink,
+  onMarkPackUploaded,
 }: {
   plan: PackPlan;
   settings: Settings;
@@ -80,6 +81,8 @@ export function BuildStep({
   onCheckDates: () => void;
   /** Shown once unlocked, so the buyer can keep it. */
   unlockLink: string | null;
+  /** After uploading: leave this pack's files out of later packs and continue the numbering. */
+  onMarkPackUploaded: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const resultsRef = useRef<HTMLHeadingElement>(null);
@@ -186,6 +189,20 @@ export function BuildStep({
             onDownloadAll={onDownloadAll}
             onPreview={onPreview}
           />
+          {canDownload && !stale ? (
+            <section aria-labelledby="uploaded-title" className={card}>
+              <h2 id="uploaded-title" className="text-[1.0625rem] font-semibold">
+                Uploaded these to ImmiAccount?
+              </h2>
+              <p className="mt-1 text-[0.9375rem] text-label-2">
+                Mark them as uploaded and they’ll be left out of your next pack, so nothing goes up twice. The numbering then
+                carries on from the last file.
+              </p>
+              <Button variant="secondary" className="mt-3" onClick={onMarkPackUploaded}>
+                Mark this pack as uploaded
+              </Button>
+            </section>
+          ) : null}
           {datesNotice}
           {unlockLink ? <UnlockLinkCard link={unlockLink} /> : null}
         </>
@@ -575,8 +592,7 @@ function FileList({
           </Button>
           <p className="text-[0.8125rem] text-label-3">
             ImmiAccount doesn’t accept .zip files, so unzip first and upload the files in number order. Open the index to check
-            everything is there before you submit. Already uploaded some files? Don’t upload them again: next time, build only
-            the new files and set “First file number” in settings.
+            everything is there before you submit.
           </p>
         </div>
       ) : null}
