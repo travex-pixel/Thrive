@@ -411,7 +411,7 @@ buyers care about (privacy, at a third of the leading competitor's price), and (
 | Offer and price | Build and preview free. **A$29 one-off** to download the full pack (launch price, list A$39), with a 30-day no-questions refund |
 | Primary channel | Helpful, disclosed replies in partner-visa help threads and comment sections, with the free fixer as the hook |
 | First 20 prospects | Recent (last 30 days) unanswered or partly answered posts asking about evidence organisation, file size, attachment limits or HEIC on r/AusVisa, ExpatForum Australia, Poms in Oz, Whirlpool's immigration forum, and DIY blog comments. Qualification criteria are in `docs/launch/` |
-| Minimum evidence before building more | **3 paid packs from 3 different couples within 14 days** of the first post, or 1 paid pack plus 5 qualified "I'd use this" with specific feature requests |
+| Minimum evidence before building more | **3 paid packs from 3 different couples within 14 days** of the first post (interest alone never counts; see VALIDATION_PLAN.md) |
 | Biggest unresolved risk | Distribution: communities may remove promotional replies, and SEO takes months |
 | Fallback if nobody buys | (1) Diagnose: under 100 visitors = channel; visitors but no builds = trust/UX; builds but no checkout = price/value. (2) Change one variable at a time. (3) If still zero after 30 days, switch to cash: the Airtasker data-entry service (#3) |
 
@@ -425,10 +425,10 @@ A real product with a real price beats a waitlist. Building is cheap, so the MVP
 **Stopping rule:** 14 days from the first public post. Assets are in [`../launch/`](../launch/).
 
 ## 7. First-day execution plan (for the founder, after approving deployment)
-1. Create a Stripe account (free; ABN optional for sole traders) and copy the live keys into the host's environment variables.
+1. Create a Stripe account (free). Trading as "LodgeReady" rather than your own name needs an ABN and a registered business name (about A$45 a year); see DEPLOY.md.
 2. Deploy to Netlify's free plan, which allows commercial use. The repo is ready (`docs/launch/DEPLOY.md`).
 3. Test the full purchase flow once, live, with your own card, then refund yourself. **This does not count as revenue.**
-4. Post the first 5 helpful replies (templates in `docs/launch/outreach.md`) and log each in `docs/launch/tracker.csv`.
+4. Post the first 5 helpful replies (templates in `docs/launch/OUTREACH.md`) and log each in `docs/launch/tracker.csv`.
 5. Check the dashboard at the end of the day.
 
 ## 8. Expected costs and uncertainties
@@ -446,5 +446,5 @@ A real product with a real price beats a waitlist. Building is cheap, so the MVP
 ## 9. Decision required from you
 1. **Approve public deployment** (Netlify free plan) and a **Stripe account** in your name. Nothing is published or charged until you do.
 2. **Approve posting** in the communities listed. Posts go out under your account; I've drafted them but won't send anything.
-3. *(Optional, recommended before scaling past ~20 sales)* A one-off legal check of the clerical-work positioning (~A$220–500).
+3. A one-off legal check of the clerical-work positioning (~A$220–500, needs your approval). The red-team review recommends it before the first sale; the CEO review accepts small-scale validation first but **no later than any creator commission deal, paid ads, or the 10th sale**. Your call.
    This exceeds the A$0 path, so it's your call.

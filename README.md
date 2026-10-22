@@ -4,7 +4,7 @@
 numbered, date-ordered PDFs. Every file is under ImmiAccount's 5 MB limit, each has a contents page, and there's an
 evidence index. Everything runs **in the browser**: documents are never uploaded.
 
-- Free: the single-file fixer (`/fix`) and packs of up to 10 files.
+- Free: the single-file fixer (`/fix`), building and previewing any pack, and downloading packs made from up to 10 documents.
 - A$29 one-off: unlimited packs and rebuilds (Stripe Checkout), with a full refund within 30 days for any reason.
 
 Why this product, and the evidence behind it: [`docs/research/REPORT.md`](docs/research/REPORT.md).

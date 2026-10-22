@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, ExternalLink, Layers, Trash2 } from "lucide-react";
+import { CalendarCheck, Check, ExternalLink, Layers, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Controls";
@@ -57,6 +57,7 @@ export function SortStep({
   onClearSelection,
   onRemove,
   onOpenItem,
+  onChangeDate,
   onConfirmDates,
   datesOpen,
   onDatesOpen,
@@ -69,6 +70,8 @@ export function SortStep({
   onClearSelection: () => void;
   onRemove: (ids: string[]) => void;
   onOpenItem: (id: string) => void;
+  /** Opens a file's details from the "Check dates" sheet; the sheet comes back afterwards. */
+  onChangeDate: (id: string) => void;
   onConfirmDates: (ids: string[]) => void;
   /** The "Check dates" sheet; owned by the parent so the Build step can open it too. */
   datesOpen: boolean;
@@ -122,8 +125,20 @@ export function SortStep({
           <ul className="mt-3 divide-y divide-separator">
             {byType.map(({ type, items: typeItems }) => {
               const label = type ? DOC_TYPES[type].plural : "Couldn’t tell from the name";
+              if (!type) {
+                // No bulk move here: these could be anything, so each one gets its own group below.
+                return (
+                  <li key="unknown" className="py-2.5">
+                    <p className="text-[0.9375rem]">
+                      <span className="font-medium">{label}</span>{" "}
+                      <span className="tabular-nums text-label-3">{typeItems.length}</span>
+                    </p>
+                    <p className="text-[0.875rem] text-label-3">Choose a group for each of these in the list below.</p>
+                  </li>
+                );
+              }
               return (
-                <li key={type ?? "unknown"} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:gap-3">
+                <li key={type} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:gap-3">
                   <p className="min-w-0 flex-1 text-[0.9375rem]">
                     <span className="font-medium">{label}</span>{" "}
                     <span className="tabular-nums text-label-3">{typeItems.length}</span>
@@ -319,29 +334,30 @@ export function SortStep({
       >
         <p className="text-[0.9375rem] text-label-2">
           These dates come from photo data and file names, and they can be wrong. For example, a photo shared by message often
-          carries the day it was saved, not the day it was taken. Dates you confirm are printed on your PDFs. Tap a file to
-          change its date.
+          carries the day it was saved, not the day it was taken. Dates you confirm are printed on your PDFs. Tap “Right” for
+          each one that’s correct, or tap a file to change its date.
         </p>
         <ul className="mt-3 divide-y divide-separator">
           {unchecked.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setCheckingDates(false);
-                  onOpenItem(item.id);
-                }}
-                className="flex min-h-14 w-full items-center gap-3 py-2 text-left"
+                onClick={() => onChangeDate(item.id)}
+                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left"
               >
                 <FileThumb item={item} url={thumbs.get(item.id)} />
                 <span className="min-w-0 flex-1">
+                  <span className="sr-only">Change the date: </span>
                   <span className="block truncate font-medium">{item.title}</span>
                   <span className="block text-[0.875rem] text-label-3">
                     <span className="font-medium text-label">{formatDate(item.date)}</span> · {dateSourceLabel(item)}
                   </span>
                 </span>
-                <span className="shrink-0 text-[0.9375rem] font-medium text-accent">Change</span>
               </button>
+              <Button variant="secondary" className="shrink-0" onClick={() => onConfirmDates([item.id])} aria-label={`Right: the date of ${item.title}`}>
+                <Check className="size-5" aria-hidden="true" />
+                Right
+              </Button>
             </li>
           ))}
         </ul>

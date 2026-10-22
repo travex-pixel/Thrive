@@ -56,11 +56,12 @@ test.describe("pack builder", () => {
       "Leases, property documents and mail": "household",
       "Bills, insurance and accounts": "household",
       Photos: "social",
-      "Couldn’t tell from the name": "commitment",
       "Statements and letters": "forms",
       "Forms and declarations": "forms",
       "ID documents and certificates": "identity",
     });
+    // Files whose type can't be told from the name are sorted one by one.
+    await page.getByLabel("Group for Screenshot 2025-01-09 at 21.14.03").selectOption("commitment");
     await expect(page.getByRole("heading", { name: "Sort by type" })).toHaveCount(0);
     await expect(page.getByLabel("Group for Passport - Alex")).toHaveValue("identity");
     await expect(page.getByLabel("Group for IMG 5530")).toHaveValue("social");
@@ -169,7 +170,7 @@ test.describe("pack builder", () => {
     await sortByType(page, { "Bank, loan and pay documents": "identity" });
     await openStep(page, "3  Build");
     await expect(page.getByRole("heading", { name: "Check your attachment limit" })).toBeVisible();
-    await expect(page.getByText(/This pack has 37 files/)).toBeVisible();
+    await expect(page.getByText(/This pack has 37 attachments/)).toBeVisible();
     await page.getByRole("button", { name: "30", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Check your attachment limit" })).toHaveCount(0);
     await expect(page.getByText("37 of 30 attachments: over your limit")).toBeVisible();
@@ -255,8 +256,8 @@ test.describe("pack builder", () => {
 
     // Remove two files after building: the 11-file pack must not become downloadable for free.
     await openStep(page, "2  Sort");
-    await page.getByLabel("Select Westpac joint account statement 2025 01").check();
-    await page.getByLabel("Select Westpac joint account statement 2025 02").check();
+    await page.getByLabel("Select Westpac joint account statement 2025-01").check();
+    await page.getByLabel("Select Westpac joint account statement 2025-02").check();
     await page.getByRole("button", { name: "Remove selected files" }).click();
     await page.getByRole("dialog", { name: "Remove 2 files?" }).getByRole("button", { name: "Remove", exact: true }).click();
     await openStep(page, "3  Build");
@@ -270,21 +271,34 @@ test.describe("pack builder", () => {
     await expect(page.getByRole("button", { name: "Download all (.zip)" })).toBeVisible();
   });
 
-  test("restoring a purchase unlocks the builder", async ({ page, context }) => {
+  test("restoring a purchase unlocks the builder in place, keeping the built pack", async ({ page, context }) => {
     await context.route("**/api/verify**", (route) => route.fulfill({ json: { token: TOKEN } }));
     await page.goto("/build");
     await addFiles(page, statements(11));
     await buildPack(page);
+    // A watermarked preview is available before paying.
+    await page.getByRole("button", { name: /^Preview 01_Other_evidence/ }).click();
+    const preview = page.getByRole("dialog", { name: "Preview" });
+    await expect(preview.getByRole("img", { name: /^Page 1 of/ })).toBeVisible();
+    await expect(preview.getByText(/Unlock to download the whole file/)).toBeVisible();
+    await page.keyboard.press("Escape");
+
     await page.getByRole("button", { name: "Restore a purchase" }).click();
     await page.getByLabel("Unlock link").fill(`https://lodgeready.example/unlock?session_id=${SESSION}`);
     await page.getByRole("button", { name: "Restore", exact: true }).click();
+    await expect(page.getByText(/Unlocked again/)).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // No rebuild needed, and the unlock link is offered for safe keeping.
+    await expect(page.getByRole("button", { name: "Download all (.zip)" })).toBeVisible();
+    await expect(page.getByLabel("Your unlock link")).toHaveValue(new RegExp(`session_id=${SESSION}`));
+  });
+
+  test("a restore link opened directly still unlocks", async ({ page, context }) => {
+    await context.route("**/api/verify**", (route) => route.fulfill({ json: { token: TOKEN } }));
+    await page.goto(`/unlock?session_id=${SESSION}&restore=1`);
     await expect(page.getByRole("heading", { name: "You’re unlocked" })).toBeVisible();
     await page.getByRole("link", { name: "Back to my pack" }).click();
     await expect(page.getByText(/Unlocked. Thank you!/)).toBeVisible();
-    // No dialog left open, and the pack downloads after a rebuild.
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await buildPack(page);
-    await expect(page.getByRole("button", { name: "Download all (.zip)" })).toBeVisible();
   });
 
   test("large pack: splits and compresses under 5 MB, paywall, checkout in a new tab", async ({ page, context }) => {
@@ -294,16 +308,16 @@ test.describe("pack builder", () => {
     await openStep(page, "2  Sort");
     await sortByType(page, {
       "Bank, loan and pay documents": "financial",
-      "Couldn’t tell from the name": "financial",
       "Bills, insurance and accounts": "household",
       Photos: "social",
     });
+    await page.getByLabel("Group for Statement bundle 2023").selectOption("financial");
     await buildPack(page);
 
     const names = await resultNames(page);
     expect(names.filter((n) => /^\d\d_Financial_evidence_part\d+of\d+\.pdf$/.test(n)).length).toBeGreaterThan(1);
     expect(names.some((n) => /Household_evidence/.test(n))).toBe(true);
-    await expect(page.getByText(/re-rendered as images/)).toBeVisible();
+    await expect(page.getByText(/re-rendered as images/).first()).toBeVisible();
 
     // 15 files > free limit: downloads are locked behind the paywall.
     await expect(page.getByRole("heading", { name: /Download your full pack/ })).toBeVisible();
@@ -323,6 +337,8 @@ test.describe("pack builder", () => {
     await expect(popup.getByRole("heading", { name: "You’re unlocked" })).toBeVisible();
     await expect(popup.getByLabel("Your unlock link")).toHaveValue(new RegExp(`session_id=${SESSION}`));
     await expect(popup.getByText(/Go back to your LodgeReady tab/)).toBeVisible();
+    // The checkout tab offers only "Close this tab": going "back" there would start a second builder.
+    await expect(popup.getByRole("link", { name: "Back to my pack" })).toHaveCount(0);
 
     // The builder tab unlocks by itself, and the pack it already built downloads straight away.
     await expect(page.getByRole("button", { name: "Download all (.zip)" })).toBeVisible();

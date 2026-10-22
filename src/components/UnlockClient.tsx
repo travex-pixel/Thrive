@@ -92,10 +92,8 @@ export function UnlockClient() {
       <div className="grid grid-cols-1 gap-4">
         <h1 className="text-[1.75rem] font-semibold leading-tight">Checkout cancelled</h1>
         <p className="text-label-2">You haven’t been charged. Your pack is still in your other LodgeReady tab.</p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <CloseTab />
-          <BackToPack secondary />
-        </div>
+        {/* Opened from the builder: going "back" here would start a second builder, so just close. */}
+        <CloseTab />
       </div>
     );
   }
@@ -178,10 +176,7 @@ export function UnlockClient() {
         </div>
       </div>
       {inTab ? (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <CloseTab />
-          <BackToPack unlocked secondary />
-        </div>
+        <CloseTab />
       ) : (
         <BackToPack unlocked />
       )}

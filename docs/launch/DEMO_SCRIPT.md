@@ -11,7 +11,7 @@ Record your phone or computer screen. Use the test files in `tests/fixtures/` pl
 | 15–25s | Sort step: files bunched by type; choose a group for "Bank, loan and pay documents" in one tap; tap "Check dates" | "It bunches files by type, and you choose where each type goes. Suggested dates are only printed once you've checked them." |
 | 25–40s | Build step → Build → "Your pack is ready: all under 5 MB" | "One tap builds date-ordered PDFs, each with a contents page, plus an index." |
 | 40–50s | Turn on Airplane mode and build again; it still works | "It runs entirely on your device. Nothing is uploaded. Turn on Airplane mode and see." |
-| 50–60s | The pricing card | "Free for up to 10 files. A$29 once for a full pack." Then show your live URL on screen |
+| 50–60s | The pricing card | "Free for packs made from up to 10 documents. A$29 once for a full pack, and you can preview it all first." Then show your live URL on screen |
 
 ## Live conversation (if someone wants to chat)
 1. **Ask first:** "How far along are you, and what's the hardest part of the uploads?" Listen. Don't pitch yet.

@@ -9,13 +9,15 @@ export const IMMI_MAX_BYTES = 5_000_000;
 export const TARGET_BYTES = 4_600_000;
 
 /**
- * Home Affairs' help says there is a limit to the number of files that can be attached for each applicant, from 30 to
- * 60 depending on the application type. We don't assume one: once a pack has more than the lowest figure, the user is
- * asked to check theirs. "Other" allows any value.
+ * Home Affairs' help says there is a limit to the number of files that can be attached for each applicant, and that it
+ * depends on the application type. Figures quoted elsewhere differ (30, 60, 100), so we don't assume one: once a pack
+ * has more than the lowest figure seen, the user is asked for theirs. "Other" allows any value.
  */
-export const ATTACHMENT_LIMIT_PRESETS = [30, 60] as const;
+export const ATTACHMENT_LIMIT_PRESETS = [30, 60, 100] as const;
 export const LOWEST_KNOWN_LIMIT = 30;
 export const ATTACH_HELP_URL = "https://immi.homeaffairs.gov.au/help-text/eplus/Pages/elp-h1075.aspx";
+/** Home Affairs' form for documents that don't fit within the attachment limit. */
+export const ADDITIONAL_DOCS_URL = "https://immi.homeaffairs.gov.au/help-support/applying-online-or-on-paper/online/attach-additional-documents-form";
 export const HOME_AFFAIRS_URL = "https://immi.homeaffairs.gov.au/";
 /** Home Affairs' own overview of partner visas, for what to provide. LodgeReady never advises on evidence. */
 export const PARTNER_VISA_URL = "https://immi.homeaffairs.gov.au/what-we-do/family-migration-program/visa-options/about-partner-visas";

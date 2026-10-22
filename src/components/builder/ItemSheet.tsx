@@ -1,7 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { useId, useState } from "react";
+import { ExternalLink, Trash2 } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { SegmentedControl, Switch } from "@/components/ui/Controls";
 import { Sheet } from "@/components/ui/Sheet";
@@ -10,6 +10,7 @@ import { formatDate, isUncheckedDate, normaliseDateInput } from "@/lib/pack/date
 import { formatBytes } from "@/lib/download";
 import { hasUnprintableText } from "@/lib/pack/text";
 import type { CategoryId, EvidenceItem } from "@/lib/pack/types";
+import { loadFile } from "@/lib/storage";
 
 type Precision = "day" | "month" | "year";
 
@@ -83,7 +84,8 @@ function ItemForm({ item, onClose, onSave, onRemove }: ItemSheetProps & { item: 
         </div>
       }
     >
-      <p className="truncate text-[0.875rem] text-label-3" title={item.fileName}>
+      <FilePreview item={item} />
+      <p className="mt-2 truncate text-[0.875rem] text-label-3" title={item.fileName}>
         {item.fileName} · {formatBytes(item.size)}
         {item.pageCount ? ` · ${item.pageCount} ${item.pageCount === 1 ? "page" : "pages"}` : ""}
       </p>
@@ -190,5 +192,55 @@ function ItemForm({ item, onClose, onSave, onRemove }: ItemSheetProps & { item: 
         {category === "unsorted" ? UNSORTED.description : CATEGORIES.find((c) => c.id === category)?.description}
       </p>
     </Sheet>
+  );
+}
+
+/**
+ * Lets people look at the file itself (it opens from this device, in a new tab): sorting, titling and checking dates
+ * shouldn't be guesswork from a 56 px thumbnail.
+ */
+function FilePreview({ item }: { item: EvidenceItem }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => {
+    if (item.error) return;
+    let created: string | null = null;
+    let cancelled = false;
+    loadFile(item.id)
+      .then((blob) => {
+        if (cancelled) return;
+        created = URL.createObjectURL(blob);
+        setUrl(created);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [item.id, item.error]);
+  if (!url) return null;
+  return (
+    <div>
+      {item.kind === "image" && !imageFailed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local object URL of the user's own photo
+        <img
+          src={url}
+          alt=""
+          onError={() => setImageFailed(true)}
+          className="h-40 w-full rounded-xl bg-surface-2 object-contain"
+        />
+      ) : null}
+      {item.kind !== "unsupported" ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener"
+          className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-medium text-accent"
+        >
+          <ExternalLink className="size-4" aria-hidden="true" />
+          Open the file
+        </a>
+      ) : null}
+    </div>
   );
 }

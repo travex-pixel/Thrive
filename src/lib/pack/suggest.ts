@@ -233,7 +233,8 @@ export function detectDocType(fileName: string, kind: ItemKind): DocType | null 
     if (rule.pattern.test(name)) return rule.type;
   }
   if (/^(the[\s_-]?)?wills?$/i.test(name.trim())) return "legal";
-  // Camera and phone pictures ("IMG_4821.HEIC", "Bali 2023.jpg") are almost always photos.
-  if (kind === "image" && !NOT_A_PHOTO.test(stem)) return "photo";
+  // Camera and phone pictures ("IMG_4821.HEIC", "Bali 2023.jpg") are almost always photos. PNGs are usually
+  // screenshots (an iPhone saves them as "IMG_1234.PNG"), which could show anything.
+  if (kind === "image" && !NOT_A_PHOTO.test(stem) && !/\.png$/i.test(fileName)) return "photo";
   return null;
 }

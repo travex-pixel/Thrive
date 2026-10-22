@@ -6,7 +6,7 @@ import { Notice } from "@/components/ui/Controls";
 import { cx } from "@/components/ui/cx";
 import { formatBytes } from "@/lib/download";
 import { formatDate } from "@/lib/pack/dates";
-import { ACCEPT_ATTRIBUTE } from "@/lib/pack/limits";
+import { ACCEPT_ATTRIBUTE, FREE_ITEM_LIMIT, PRICE_LABEL } from "@/lib/pack/limits";
 import type { EvidenceItem } from "@/lib/pack/types";
 import { FileThumb } from "./FileThumb";
 
@@ -87,6 +87,9 @@ export function AddStep({
             </span>
             <p className="mt-4 text-[1.1875rem] font-semibold">Drop files here</p>
             <p className="mt-1 text-[0.9375rem] text-label-3">PDF, JPG, PNG, HEIC, WEBP, Word and more. Add as many as you like.</p>
+            <p className="mt-1 hidden text-[0.8125rem] text-label-3 sm:block">
+              If your browser asks to “upload” a folder, that only means letting this page read it. Nothing leaves this device.
+            </p>
           </>
         )}
         <div className={cx("flex gap-3", compact ? "flex-row" : "mt-6 flex-col items-stretch justify-center sm:flex-row sm:items-center")}>
@@ -138,6 +141,13 @@ export function AddStep({
           }}
         />
       </div>
+
+      {items.length > FREE_ITEM_LIMIT ? (
+        <p className="text-[0.875rem] text-label-2">
+          Free for packs made from up to {FREE_ITEM_LIMIT} documents (any number of pages). Bigger packs are {PRICE_LABEL}{" "}
+          once, with a full refund within 30 days if you change your mind. You can preview every file before you pay.
+        </p>
+      ) : null}
 
       {storageOk && unsavedCount > 0 ? (
         <Notice tone="warning" icon={<HardDrive className="size-5 text-warning" aria-hidden="true" />}>

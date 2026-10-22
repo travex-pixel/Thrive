@@ -2,6 +2,7 @@
 
 import { ArrowRight, CircleCheck, Download, FileText, LoaderCircle, Plus, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { InAppBrowserNotice } from "@/components/InAppBrowserNotice";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Notice, ProgressBar } from "@/components/ui/Controls";
 import { cx } from "@/components/ui/cx";
@@ -68,6 +69,7 @@ export function FixApp() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      <InAppBrowserNotice />
       <div
         onDragOver={(e) => {
           e.preventDefault();

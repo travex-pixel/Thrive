@@ -16,10 +16,10 @@ test.describe("phone-sized journey", () => {
 
     await bar.click();
     await sortByType(page, {
-      "Couldn’t tell from the name": "commitment",
       "Leases, property documents and mail": "household",
       Photos: "social",
     });
+    await page.getByLabel("Group for Screenshot 2025-01-09 at 21.14.03").selectOption("commitment");
 
     // Long names never cause sideways scrolling.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

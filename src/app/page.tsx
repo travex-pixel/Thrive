@@ -41,7 +41,7 @@ const limits = [
   {
     icon: Layers,
     title: "Limited attachments",
-    body: "Home Affairs’ help says each applicant can attach between 30 and 60 files, depending on the application type.",
+    body: "Each applicant can attach only so many files, and the limit depends on the application type.",
   },
   { icon: Ban, title: "No undo", body: "Attachments can’t be removed once they’re added, so a messy upload stays messy." },
   {
@@ -124,13 +124,13 @@ const faqs: { q: string; a: React.ReactNode }[] = [
     q: "How many attachments am I allowed?",
     a: (
       <>
-        Home Affairs’ help says there’s a limit for each applicant, between 30 and 60 files depending on the application
-        type. Check yours before you upload (
+        Home Affairs’ help says there’s a limit for each applicant, and that it depends on the application type. Figures
+        quoted online differ, so check yours in ImmiAccount before you upload (
         <a className="text-accent underline underline-offset-2" href={ATTACH_HELP_URL} target="_blank" rel="noreferrer">
           Home Affairs: attach documents
         </a>
-        ). Once a pack has more than 30 files, LodgeReady asks for your limit and warns you if the pack needs more. Photo-heavy
-        packs use more files; “Smaller photos” fits about twice as many in each.
+        ). Once a pack has more than 30 attachments, LodgeReady asks for your limit and warns you if the pack needs more.
+        Photo-heavy packs use more attachments; “Smaller photos” fits about twice as many in each.
       </>
     ),
   },
@@ -196,7 +196,7 @@ export default function Home() {
             </h1>
             <p className="mt-5 max-w-xl text-[1.1875rem] leading-relaxed text-label-2">
               Turn hundreds of photos, statements and screenshots into a tidy set of date-ordered PDFs, with every file under
-              5&nbsp;MB, a contents page on each and an index to match. All in your browser.
+              5&nbsp;MB, a contents page on each merged PDF and an index to match. All in your browser.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/build" size="lg">
@@ -215,7 +215,7 @@ export default function Home() {
                 <Check className="size-4 text-success" aria-hidden="true" /> Nothing uploaded
               </li>
               <li className="inline-flex items-center gap-1.5">
-                <Check className="size-4 text-success" aria-hidden="true" /> Free up to {FREE_ITEM_LIMIT} files, then {PRICE_LABEL} once
+                <Check className="size-4 text-success" aria-hidden="true" /> Free up to {FREE_ITEM_LIMIT} documents, then {PRICE_LABEL} once
               </li>
             </ul>
           </div>
@@ -240,7 +240,8 @@ export default function Home() {
               ))}
             </ul>
             <figcaption className="px-4 pb-3 pt-2 text-[0.75rem] text-label-3">
-              Illustration of 70 statements, 18 household documents and 28 photos. Your pack depends on your files.
+              Illustration: 70 downloaded (unlocked) statements, 18 household documents and 28 photos. Locked statements are
+              re-rendered and take several times more space. Your pack depends on your files.
             </figcaption>
           </figure>
         </section>
@@ -334,7 +335,7 @@ export default function Home() {
               Simple, one-off pricing
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-label-2">
-              Try everything for free. Pay once if your pack is bigger than {FREE_ITEM_LIMIT} files.
+              Try everything for free. Pay once if your pack is made from more than {FREE_ITEM_LIMIT} documents.
             </p>
             <div className="mx-auto mt-10 grid max-w-3xl gap-4 md:grid-cols-2">
               <div className="rounded-[var(--radius-card)] border border-separator p-7">
@@ -343,8 +344,8 @@ export default function Home() {
                 <ul className="mt-5 grid grid-cols-1 gap-2.5 text-[0.9375rem]">
                   {[
                     "Fix single files, unlimited",
-                    `Download packs of up to ${FREE_ITEM_LIMIT} files`,
-                    "Preview a pack of any size",
+                    `Download packs made from up to ${FREE_ITEM_LIMIT} documents`,
+                    "Build and preview a pack of any size",
                   ].map((t) => (
                     <li key={t} className="flex gap-2">
                       <Check className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
@@ -411,7 +412,7 @@ export default function Home() {
           <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
             <h2 className="text-[1.875rem] font-semibold sm:text-[2.25rem]">Upload with fewer surprises.</h2>
             <p className="mx-auto mt-3 max-w-xl text-label-2">
-              Start with your messiest folder. You’ll see the whole pack before you pay a cent.
+              Start with your messiest folder. You can build and preview the whole pack before you pay a cent.
             </p>
             <ButtonLink href="/build" size="lg" className="mt-8">
               Try it free

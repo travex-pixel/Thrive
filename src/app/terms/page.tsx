@@ -33,7 +33,8 @@ export default function TermsPage() {
         You can use the single-file fixer and build packs of up to {FREE_ITEM_LIMIT} files for free. A one-off payment of{" "}
         {PRICE_LABEL} in Australian dollars (including GST, if any applies) unlocks unlimited packs and rebuilds for your
         personal use in the browser where you pay. Your unlock link switches it on in your other browsers and devices.
-        Please don’t share it publicly.
+        Please don’t share it publicly: a link that’s shared, or a purchase that’s refunded, can be switched off for new
+        browsers.
       </p>
 
       <h2>Refunds</h2>
@@ -49,6 +50,20 @@ export default function TermsPage() {
         types that LodgeReady suggests are only suggestions: check them, and every file it makes, before you upload. To the
         extent the law allows, and apart from the consumer guarantees above, we aren’t liable for indirect or consequential
         loss, or for the outcome of any visa application.
+      </p>
+
+      <h2>Support</h2>
+      <p>
+        Contact <ContactLine />. Please never email us your documents: we don’t need them to help, and LodgeReady is designed
+        so we never see them. If we ever stop running LodgeReady, packs you’ve already downloaded are yours to keep.
+      </p>
+
+      <h2>Open-source software</h2>
+      <p>
+        LodgeReady is built with open-source software, including Next.js and React (MIT), pdf-lib (MIT), pdf.js
+        (Apache-2.0), heic2any (MIT), which includes libheif (LGPL-3.0), exifr (MIT), idb-keyval (Apache-2.0) and the Noto
+        Sans font (SIL Open Font License 1.1). The libheif source code is available from its project at
+        github.com/strukturag/libheif.
       </p>
 
       <h2>Changes</h2>

@@ -39,6 +39,8 @@ export interface State {
   selection: string[];
   build: BuildState;
   unlocked: boolean;
+  /** The buyer's unlock link, so they can save it (it restores the unlock in any browser). */
+  unlockLink: string | null;
 }
 
 export const initialState: State = {
@@ -51,6 +53,7 @@ export const initialState: State = {
   selection: [],
   build: { status: "idle" },
   unlocked: false,
+  unlockLink: null,
 };
 
 export type Action =
@@ -70,7 +73,7 @@ export type Action =
   | { type: "buildDone"; result: BuildResult; signature: string; seconds: number }
   | { type: "buildError"; message: string }
   | { type: "buildReset" }
-  | { type: "unlock" }
+  | { type: "unlock"; link: string | null }
   | { type: "clearAll" };
 
 export function reducer(state: State, action: Action): State {
@@ -158,9 +161,11 @@ export function reducer(state: State, action: Action): State {
     case "buildReset":
       return { ...state, build: { status: "idle" } };
     case "unlock":
-      return state.unlocked ? state : { ...state, unlocked: true };
+      return state.unlocked && state.unlockLink === (action.link ?? state.unlockLink)
+        ? state
+        : { ...state, unlocked: true, unlockLink: action.link ?? state.unlockLink };
     case "clearAll":
-      return { ...initialState, ready: true, storageOk: state.storageOk, unlocked: state.unlocked };
+      return { ...initialState, ready: true, storageOk: state.storageOk, unlocked: state.unlocked, unlockLink: state.unlockLink };
     default:
       return state;
   }

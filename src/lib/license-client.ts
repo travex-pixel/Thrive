@@ -11,6 +11,7 @@ const TOKEN_SHAPE = /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 /** Used when the browser won't let us store anything: the unlock then lasts until this tab closes. */
 let memoryLicense: string | null = null;
+let memoryLink: string | null = null;
 
 export function getLicense(): string | null {
   try {
@@ -28,6 +29,7 @@ export function hasLicense(): boolean {
 /** Returns false if the browser wouldn't save it (the unlock then only lasts while this tab is open). */
 export function storeLicense(token: string, unlockLink?: string): boolean {
   memoryLicense = token;
+  if (unlockLink) memoryLink = unlockLink;
   try {
     localStorage.setItem(LICENSE_KEY, token);
     if (unlockLink) localStorage.setItem(UNLOCK_LINK_KEY, unlockLink);
@@ -39,9 +41,9 @@ export function storeLicense(token: string, unlockLink?: string): boolean {
 
 export function getUnlockLink(): string | null {
   try {
-    return localStorage.getItem(UNLOCK_LINK_KEY);
+    return localStorage.getItem(UNLOCK_LINK_KEY) ?? memoryLink;
   } catch {
-    return null;
+    return memoryLink;
   }
 }
 

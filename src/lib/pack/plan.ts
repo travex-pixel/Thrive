@@ -197,6 +197,14 @@ export function nameGroups(groups: DocGroup[], includeIndex: boolean, startNumbe
   return docs;
 }
 
+/**
+ * Attachments already uploaded when numbering continues from `startNumber` (files 00 to startNumber − 1). Counted
+ * from 00, which slightly overcounts if the earlier batch had no index: the safe direction for a limit.
+ */
+export function alreadyUploadedCount(startNumber: number): number {
+  return Number.isFinite(startNumber) && startNumber > 1 ? Math.floor(startNumber) : 0;
+}
+
 export function planPack(items: EvidenceItem[], settings: PackSettings & { names?: string; limitConfirmed?: boolean }): PackPlan {
   const usable = items.filter(isUsable);
   const unusable = items.length - usable.length;
@@ -206,9 +214,11 @@ export function planPack(items: EvidenceItem[], settings: PackSettings & { names
   const groups = groupItems(items, settings.compactPhotos);
   const docs = usable.length > 0 ? nameGroups(groups, settings.includeIndex, settings.startNumber) : [];
   const attachmentCount = docs.length;
+  // Continuing after earlier uploads (say 00 to 23): those attachments count towards the same limit.
+  const alreadyUploaded = alreadyUploadedCount(settings.startNumber);
   const limitKnown = settings.limitConfirmed !== false;
-  const needsLimitCheck = !limitKnown && attachmentCount > LOWEST_KNOWN_LIMIT;
-  const overLimit = limitKnown && attachmentCount > settings.attachmentLimit;
+  const needsLimitCheck = !limitKnown && attachmentCount + alreadyUploaded > LOWEST_KNOWN_LIMIT;
+  const overLimit = limitKnown && attachmentCount + alreadyUploaded > settings.attachmentLimit;
 
   const warnings: string[] = [];
   if (unsortedCount > 0) {
@@ -223,8 +233,9 @@ export function planPack(items: EvidenceItem[], settings: PackSettings & { names
     );
   }
   if (overLimit) {
+    const total = alreadyUploaded > 0 ? `, plus the ${alreadyUploaded} you’ve already uploaded,` : "";
     warnings.push(
-      `This pack has ${attachmentCount} files and your limit is set to ${settings.attachmentLimit}. ` +
+      `This pack has ${attachmentCount} files${total} and your limit is set to ${settings.attachmentLimit}. ` +
         `Change what’s in the pack${settings.compactPhotos ? "" : ", turn on smaller photos"}${settings.includeIndex ? ", or turn off the index" : ""}.`,
     );
   }

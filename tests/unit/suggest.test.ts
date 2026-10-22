@@ -44,6 +44,7 @@ describe("detectDocType", () => {
 
   it.each([
     ["Screenshot 2024-03-01 at 9.41.22 am.png", "image"],
+    ["IMG_1234.PNG", "image"], // an iPhone screenshot: could show anything
     ["Scan 0001.jpg", "image"],
     ["scan0001.pdf", "pdf"],
     ["document.pdf", "pdf"],

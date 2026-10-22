@@ -5,12 +5,18 @@ import type { PDFDocument, PDFFont } from "pdf-lib";
  * so captions support accented Latin, Greek, Cyrillic and Vietnamese text.
  * Characters the font can't draw (e.g. CJK, emoji) are replaced rather than
  * breaking the build.
+ *
+ * The files in public/fonts are pre-trimmed by scripts/subset-fonts.sh: with the
+ * full hinted fonts, pdf-lib's subsetting drew most glyphs blank.
  */
 interface FontBytes {
   regular: Uint8Array;
   semibold: Uint8Array;
   hasGlyph: (codePoint: number) => boolean;
 }
+
+/** Bump when public/fonts changes: the files are cached for 30 days. */
+const FONT_VERSION = 2;
 
 let fontBytesPromise: Promise<FontBytes> | null = null;
 
@@ -24,8 +30,8 @@ export function loadFontBytes(): Promise<FontBytes> {
   if (!fontBytesPromise) {
     fontBytesPromise = (async () => {
       const [regular, semibold, fontkitModule] = await Promise.all([
-        fetchBytes("/fonts/NotoSans-Regular.ttf"),
-        fetchBytes("/fonts/NotoSans-SemiBold.ttf"),
+        fetchBytes(`/fonts/NotoSans-Regular.ttf?v=${FONT_VERSION}`),
+        fetchBytes(`/fonts/NotoSans-SemiBold.ttf?v=${FONT_VERSION}`),
         import("@pdf-lib/fontkit"),
       ]);
       const fontkit = fontkitModule.default;

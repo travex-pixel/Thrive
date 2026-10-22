@@ -15,14 +15,23 @@ const HOST = (process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com"
 export type AnalyticsEvent =
   | "landing_viewed"
   | "builder_opened"
+  | "step_viewed"
   | "files_added"
+  | "dates_confirmed"
+  | "build_started"
+  | "build_cancelled"
   | "pack_built"
   | "build_failed"
+  | "over_limit"
+  | "preview_opened"
   | "paywall_shown"
   | "checkout_started"
   | "checkout_unavailable"
   | "purchase_verified"
   | "download_clicked"
+  | "unlock_link_saved"
+  | "in_app_browser"
+  | "storage_full"
   | "fixer_used";
 
 type Props = Record<string, string | number | boolean | undefined>;

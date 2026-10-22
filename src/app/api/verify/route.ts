@@ -25,7 +25,17 @@ export async function GET(request: Request) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    // Links can be switched off by the operator (e.g. one posted publicly): REVOKED_SESSIONS=cs_live_…,cs_live_…
+    if ((process.env.REVOKED_SESSIONS ?? "").split(",").map((v) => v.trim()).includes(sessionId)) {
+      return Response.json({ error: "revoked", message: "This unlock link has been switched off. Please contact us." }, { status: 403, headers: noStore });
+    }
+    const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["payment_intent.latest_charge"] });
+    // A refunded or disputed purchase no longer restores (browsers already unlocked keep working offline).
+    const intent = session.payment_intent;
+    const charge = intent && typeof intent === "object" ? intent.latest_charge : null;
+    if (charge && typeof charge === "object" && (charge.refunded || charge.amount_refunded > 0 || charge.disputed)) {
+      return Response.json({ error: "refunded", message: "This purchase was refunded, so it can’t unlock LodgeReady." }, { status: 403, headers: noStore });
+    }
     // "no_payment_required" covers a 100%-off promotion code.
     const paid = session.status === "complete" && (session.payment_status === "paid" || session.payment_status === "no_payment_required");
     if (!paid || session.metadata?.product !== PRODUCT_CODE) {

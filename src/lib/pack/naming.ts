@@ -8,12 +8,14 @@ export function extensionOf(fileName: string): string {
   return match ? match[1].toLowerCase() : "";
 }
 
-/** "joint_bank-statement_Mar 2024.pdf" -> "joint bank statement Mar 2024" */
+/** "joint_bank-statement_Mar 2024.pdf" -> "joint bank statement Mar 2024"; dates like "2025-01" stay intact. */
 export function titleFromFileName(fileName: string): string {
   const base = fileName.replace(/\.[a-z0-9]{1,5}$/i, "");
   const cleaned = base
     .replace(/[_]+/g, " ")
-    .replace(/(?<=\S)-(?=\S)/g, " ")
+    .replace(/(?<=\S)-(?=\S)/g, (_match, offset: number, whole: string) =>
+      /\d/.test(whole[offset - 1]) && /\d/.test(whole[offset + 1]) ? "-" : " ",
+    )
     .replace(/\s+/g, " ")
     .trim();
   return (cleaned || "Untitled").slice(0, 120);

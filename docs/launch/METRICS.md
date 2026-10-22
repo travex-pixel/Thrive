@@ -27,11 +27,22 @@ If you skip this, the app works the same and sends no analytics at all. Use Stri
 | `purchase_verified` | /unlock confirms a payment, once per browser | `result` (`new` or `restore`) |
 | `download_clicked` | A single file or the ZIP is downloaded | `kind` |
 | `fixer_used` | The free fixer finishes | `kind`, `result` |
+| `step_viewed` | Add, Sort or Build is opened | `kind` (the step) |
+| `dates_confirmed` | Dates are confirmed | `result` (`one` or `all`), `count_bucket` |
+| `build_started` / `build_cancelled` | A build starts / is cancelled | `files_bucket` |
+| `over_limit` | A finished pack is over the attachment limit | `files_bucket` |
+| `preview_opened` | A built file is previewed | `kind` |
+| `unlock_link_saved` | The unlock link is copied or emailed | `kind` |
+| `in_app_browser` | The page opened inside Facebook, Instagram, TikTok… | `kind` (the app) |
+| `storage_full` | The browser refused to save files | `count_bucket` |
 
 `ref` comes from the `?ref=` code on the link someone followed, so you can see which channel worked.
 
 ## The funnel to watch (weekly)
 `landing_viewed → builder_opened → files_added → pack_built → paywall_shown → checkout_started → purchase_verified (result=new)`
+
+`build_started → pack_built` shows builds that crash or are abandoned (especially on phones); `in_app_browser` shows
+how many visitors arrive inside a social app's browser, where downloads often fail.
 
 **Diagnosis:**
 - A drop at **builder_opened**: weak landing or hero.
@@ -46,7 +57,7 @@ If you skip this, the app works the same and sends no analytics at all. Use Stri
 | Interest ("this is great") | `tracker.csv` | No |
 | Verbal commitment ("I'll buy it next week") | `tracker.csv` | No |
 | Checkout started | PostHog `checkout_started` | No |
-| Completed transaction | Stripe → Payments (live mode) | Not yet. Wait for the refund window and payout |
+| Completed transaction | Stripe → Payments (live mode) | Counts as a **sale** the day it clears (VALIDATION_PLAN.md); re-check at day 30 and remove it if refunded |
 | Revenue received | Stripe payout to your bank | **Yes** (gross) |
 | Profit | Revenue − Stripe fees − refunds − hosting (A$0) − domain (if bought) | **Yes** (net) |
 

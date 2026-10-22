@@ -28,7 +28,7 @@ Out of scope for the MVP: accounts, cloud sync, AI, WhatsApp parsing, timeline b
 - **Everything runs client-side** (pdf-lib, pdf.js, fflate, heic2any, exifr, idb-keyval, all MIT/Apache).
   Our servers never receive a single document.
 - **The only backend** is three Next.js route handlers for payments: `POST /api/checkout`, `GET /api/verify` and
-  `POST /api/restore`. They talk to Stripe with a server-side secret key and issue an HMAC-signed unlock token.
+  restoring with the unlock link (which calls `GET /api/verify` again). They talk to Stripe with a server-side secret key and issue an HMAC-signed unlock token.
   No database.
 - **Strict Content-Security-Policy:** the page can only connect to its own origin (plus an analytics endpoint, if
   configured). That backs up the "nothing is uploaded" promise with something checkable.

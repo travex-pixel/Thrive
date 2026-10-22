@@ -27,6 +27,8 @@ const settings = { attachmentLimit: 60, includeIndex: true, compactPhotos: false
 describe("naming", () => {
   it("derives readable titles", () => {
     expect(titleFromFileName("joint_bank-statement_Mar 2024.pdf")).toBe("joint bank statement Mar 2024");
+    expect(titleFromFileName("Westpac statement 2025-01.pdf")).toBe("Westpac statement 2025-01");
+    expect(titleFromFileName("Lease_2023-07-01_signed.pdf")).toBe("Lease 2023-07-01 signed");
     expect(titleFromFileName(".pdf")).toBe("Untitled");
   });
   it("makes file-name-safe ASCII with underscores only", () => {
@@ -147,6 +149,15 @@ describe("planPack", () => {
     ]);
     const noIndex = planPack([item()], { ...settings, startNumber: 24, includeIndex: false });
     expect(noIndex.docs.map((d) => d.fileName)).toEqual(["24_Financial_evidence.pdf"]);
+  });
+
+  it("counts attachments already uploaded towards the limit", () => {
+    const items = Array.from({ length: 7 }, () => item({ category: "identity" }));
+    const plan = planPack(items, { ...settings, attachmentLimit: 30, limitConfirmed: true, startNumber: 24 });
+    expect(plan.attachmentCount).toBe(8); // index + 7
+    expect(plan.overLimit).toBe(true); // 8 + 24 already uploaded > 30
+    expect(plan.warnings.join(" ")).toMatch(/plus the 24 you’ve already uploaded/);
+    expect(planPack(items, { ...settings, attachmentLimit: 30, limitConfirmed: true }).overLimit).toBe(false);
   });
 
   it("falls back to a generic name when a title has no Latin letters", () => {

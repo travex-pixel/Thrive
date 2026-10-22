@@ -5,6 +5,7 @@ import {
   CircleCheck,
   Download,
   ExternalLink,
+  Eye,
   FileText,
   Info,
   LoaderCircle,
@@ -20,9 +21,11 @@ import { Button } from "@/components/ui/Button";
 import { Notice, ProgressBar, SegmentedControl, Switch } from "@/components/ui/Controls";
 import { cx } from "@/components/ui/cx";
 import { Sheet } from "@/components/ui/Sheet";
+import { UnlockLinkCard } from "@/components/UnlockLinkCard";
 import type { BuiltFile, SkippedItem } from "@/lib/pack/build";
+import { alreadyUploadedCount } from "@/lib/pack/plan";
 import { formatBytes } from "@/lib/download";
-import { ATTACH_HELP_URL, ATTACHMENT_LIMIT_PRESETS, FREE_ITEM_LIMIT, IMMI_MAX_BYTES, LOWEST_KNOWN_LIMIT, PRICE_LABEL } from "@/lib/pack/limits";
+import { ADDITIONAL_DOCS_URL, ATTACH_HELP_URL, ATTACHMENT_LIMIT_PRESETS, FREE_ITEM_LIMIT, IMMI_MAX_BYTES, PRICE_LABEL } from "@/lib/pack/limits";
 import type { PackPlan } from "@/lib/pack/types";
 import type { BuildState, Settings } from "./state";
 
@@ -52,8 +55,11 @@ export function BuildStep({
   onDownloadAll,
   onUnlock,
   onCheckPayment,
+  onCancelCheckout,
   onRestore,
+  onPreview,
   onCheckDates,
+  unlockLink,
 }: {
   plan: PackPlan;
   settings: Settings;
@@ -68,12 +74,20 @@ export function BuildStep({
   onDownloadAll: () => void;
   onUnlock: () => void;
   onCheckPayment: () => void;
+  onCancelCheckout: () => void;
   onRestore: () => void;
+  onPreview: (file: BuiltFile) => void;
   onCheckDates: () => void;
+  /** Shown once unlocked, so the buyer can keep it. */
+  unlockLink: string | null;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const resultsRef = useRef<HTMLHeadingElement>(null);
   const done = build.status === "done";
+  const uploaded = alreadyUploadedCount(settings.startNumber);
+  // A pack over the limit is not "ready": attachments can't be removed once added.
+  const overLimit =
+    build.status === "done" && settings.limitConfirmed && build.result.files.length + uploaded > settings.attachmentLimit;
 
   // Bring the result into view (and focus) the moment a build finishes.
   useEffect(() => {
@@ -105,23 +119,40 @@ export function BuildStep({
         <>
           <section aria-labelledby="results-title" className={card}>
             <div className="flex items-start gap-3">
-              {build.result.skipped.length > 0 ? (
+              {overLimit ? (
+                <TriangleAlert className="mt-0.5 size-7 shrink-0 text-danger" aria-hidden="true" />
+              ) : build.result.skipped.length > 0 ? (
                 <TriangleAlert className="mt-0.5 size-7 shrink-0 text-warning" aria-hidden="true" />
               ) : (
                 <CircleCheck className="mt-0.5 size-7 shrink-0 text-success" aria-hidden="true" />
               )}
               <div className="min-w-0 flex-1">
                 <h1 id="results-title" ref={resultsRef} tabIndex={-1} className="text-[1.5rem] font-semibold leading-tight outline-none">
-                  {build.result.skipped.length > 0
-                    ? `Your pack is ready, but ${build.result.skipped.length} ${build.result.skipped.length === 1 ? "file was" : "files were"} left out`
-                    : "Your pack is ready"}
+                  {overLimit
+                    ? "Over your attachment limit"
+                    : build.result.skipped.length > 0
+                      ? `Your pack is ready, but ${build.result.skipped.length} ${build.result.skipped.length === 1 ? "file was" : "files were"} left out`
+                      : "Your pack is ready"}
                 </h1>
                 <ResultSummary files={build.result.files} seconds={build.seconds} />
                 <div className="mt-1">
-                  <AttachmentMeter count={build.result.files.length} limit={settings.limitConfirmed ? settings.attachmentLimit : null} />
+                  <AttachmentMeter
+                    count={build.result.files.length + uploaded}
+                    limit={settings.limitConfirmed ? settings.attachmentLimit : null}
+                    uploaded={uploaded}
+                  />
                 </div>
               </div>
             </div>
+            {overLimit ? (
+              <OverLimit
+                count={build.result.files.length}
+                uploaded={uploaded}
+                settings={settings}
+                onSettings={onSettings}
+                onEditSettings={() => setSettingsOpen(true)}
+              />
+            ) : null}
             {build.result.skipped.length > 0 ? <SkippedList skipped={build.result.skipped} /> : null}
             {stale ? (
               <div className="mt-4">
@@ -137,7 +168,14 @@ export function BuildStep({
           </section>
           {limitCheck}
           {!canDownload ? (
-            <Paywall itemCount={build.result.itemCount} checkout={checkout} onUnlock={onUnlock} onCheckPayment={onCheckPayment} onRestore={onRestore} />
+            <Paywall
+              itemCount={build.result.itemCount}
+              checkout={checkout}
+              onUnlock={onUnlock}
+              onCheckPayment={onCheckPayment}
+              onCancelCheckout={onCancelCheckout}
+              onRestore={onRestore}
+            />
           ) : null}
           <FileList
             files={build.result.files}
@@ -146,8 +184,10 @@ export function BuildStep({
             stale={stale}
             onDownload={onDownload}
             onDownloadAll={onDownloadAll}
+            onPreview={onPreview}
           />
           {datesNotice}
+          {unlockLink ? <UnlockLinkCard link={unlockLink} /> : null}
         </>
       ) : (
         <>
@@ -225,25 +265,74 @@ function ResultSummary({ files, seconds }: { files: BuiltFile[]; seconds: number
   const largest = Math.max(...files.map((f) => f.size));
   return (
     <p className="mt-1 text-[0.9375rem] text-label-2">
-      {files.length} {files.length === 1 ? "file" : "files"}, all under 5&nbsp;MB (largest {formatBytes(largest)}) ·{" "}
+      {files.length} {files.length === 1 ? "attachment" : "attachments"}, all under 5&nbsp;MB (largest {formatBytes(largest)}) ·{" "}
       {formatBytes(total)} in total · built in {Math.max(1, Math.round(seconds))}s
     </p>
   );
 }
 
-function AttachmentMeter({ count, limit }: { count: number; limit: number | null }) {
+function AttachmentMeter({ count, limit, uploaded = 0 }: { count: number; limit: number | null; uploaded?: number }) {
+  const including = uploaded > 0 ? `, including ${uploaded} already uploaded` : "";
   if (limit === null) {
     return (
       <span className="text-[0.875rem] font-medium tabular-nums text-label-3">
         {count} {count === 1 ? "attachment" : "attachments"}
+        {including}
       </span>
     );
   }
   const over = count > limit;
   return (
     <span className={cx("text-[0.875rem] font-medium tabular-nums", over ? "text-danger" : "text-label-3")}>
-      {count} of {limit} attachments{over ? ": over your limit" : ""}
+      {count} of {limit} attachments{including}
+      {over ? ": over your limit" : ""}
     </span>
+  );
+}
+
+/** One-tap ways to fit the limit. Mechanical only: which documents to provide is the applicant's call. */
+function OverLimit({
+  count,
+  uploaded,
+  settings,
+  onSettings,
+  onEditSettings,
+}: {
+  count: number;
+  uploaded: number;
+  settings: Settings;
+  onSettings: (patch: Partial<Settings>) => void;
+  onEditSettings: () => void;
+}) {
+  return (
+    <div className="mt-4 rounded-xl bg-danger-tint px-4 py-3" role="alert">
+      <p className="text-[0.9375rem]">
+        This pack has {count} attachments{uploaded > 0 ? `, plus ${uploaded} you’ve already uploaded,` : ""} and your limit is{" "}
+        {settings.attachmentLimit}. Attachments can’t be removed once added, so fix this before you upload.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {!settings.compactPhotos ? (
+          <Button variant="secondary" onClick={() => onSettings({ compactPhotos: true })}>
+            Use smaller photos
+          </Button>
+        ) : null}
+        {settings.includeIndex ? (
+          <Button variant="secondary" onClick={() => onSettings({ includeIndex: false })}>
+            Leave out the index
+          </Button>
+        ) : null}
+        <Button variant="plain" onClick={onEditSettings}>
+          Change the limit
+        </Button>
+      </div>
+      <p className="mt-2 text-[0.8125rem] text-label-2">
+        Then rebuild. Home Affairs also has a{" "}
+        <a href={ADDITIONAL_DOCS_URL} target="_blank" rel="noreferrer" className="text-accent underline">
+          form for documents that don’t fit
+        </a>
+        .
+      </p>
+    </div>
   );
 }
 
@@ -272,9 +361,9 @@ function LimitCheck({ count, onSettings }: { count: number; onSettings: (patch: 
         Check your attachment limit
       </h2>
       <p className="mt-1 text-[0.9375rem] text-label-2">
-        This pack has {count} files. Home Affairs’ help says the number of files you can attach for each applicant is
-        between {LOWEST_KNOWN_LIMIT} and 60, depending on the application type. Attachments can’t be removed once added, so
-        check yours first.{" "}
+        This pack has {count} attachments. There’s a limit on how many files you can attach for each applicant, and Home
+        Affairs’ help says it depends on the application type. Attachments can’t be removed once added, so check yours
+        first.{" "}
         <a href={ATTACH_HELP_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium text-accent underline underline-offset-2">
           Home Affairs: attach documents
           <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -329,12 +418,14 @@ function Paywall({
   checkout,
   onUnlock,
   onCheckPayment,
+  onCancelCheckout,
   onRestore,
 }: {
   itemCount: number;
   checkout: CheckoutState;
   onUnlock: () => void;
   onCheckPayment: () => void;
+  onCancelCheckout: () => void;
   onRestore: () => void;
 }) {
   return (
@@ -346,8 +437,8 @@ function Paywall({
             Download your full pack: {PRICE_LABEL}, one-off
           </h2>
           <p className="mt-1 text-label-2">
-            This pack uses {itemCount} of your files. Free packs can use up to {FREE_ITEM_LIMIT}. Unlock once for unlimited
-            files and rebuilds in this browser.
+            This pack is made from {itemCount} of your documents. Free packs can use up to {FREE_ITEM_LIMIT} documents (any
+            number of pages). Unlock once for unlimited documents and rebuilds in this browser.
           </p>
         </div>
       </div>
@@ -372,6 +463,9 @@ function Paywall({
             </Button>
             <Button variant="plain" onClick={onUnlock}>
               Open checkout again
+            </Button>
+            <Button variant="plain" onClick={onCancelCheckout}>
+              Cancel
             </Button>
           </div>
         </div>
@@ -415,6 +509,7 @@ function FileList({
   stale,
   onDownload,
   onDownloadAll,
+  onPreview,
 }: {
   files: BuiltFile[];
   warnings: string[];
@@ -422,13 +517,15 @@ function FileList({
   stale: boolean;
   onDownload: (file: BuiltFile) => void;
   onDownloadAll: () => void;
+  onPreview: (file: BuiltFile) => void;
 }) {
   const usable = canDownload && !stale;
   return (
     <section aria-labelledby="files-title" className={card}>
       <h2 id="files-title" className="text-[1.0625rem] font-semibold">
-        Files to upload, in this order
+        Attachments to upload, in this order
       </h2>
+      {!usable ? <p className="mt-1 text-[0.875rem] text-label-3">Tap the eye to preview any of them.</p> : null}
       {warnings.length > 0 ? (
         <ul className="mt-3 grid grid-cols-1 gap-2">
           {warnings.map((w) => (
@@ -449,8 +546,14 @@ function FileList({
                 {formatBytes(f.size)}
                 {f.pageCount ? ` · ${f.pageCount} ${f.pageCount === 1 ? "page" : "pages"}` : ""}
                 {f.entries.length > 1 ? ` · ${f.entries.length} documents` : ""}
+                {f.rasterised ? " · some pages re-rendered as images" : ""}
               </p>
             </div>
+            {f.fileName.toLowerCase().endsWith(".pdf") ? (
+              <Button variant="plain" onClick={() => onPreview(f)} aria-label={`Preview ${f.fileName}`} className="shrink-0">
+                <Eye className="size-5" aria-hidden="true" />
+              </Button>
+            ) : null}
             {usable ? (
               <Button variant="plain" onClick={() => onDownload(f)} aria-label={`Download ${f.fileName}`} className="shrink-0">
                 <Download className="size-5" aria-hidden="true" />
@@ -568,8 +671,7 @@ function SettingsSheet({
         ) : null}
       </div>
       <p className="mt-2 text-[0.8125rem] text-label-3">
-        Home Affairs’ help says this is between 30 and 60 files, depending on the application type. Check yours before you
-        upload.{" "}
+        Home Affairs’ help says the limit depends on the application type. Check yours in ImmiAccount before you upload.{" "}
         <a href={ATTACH_HELP_URL} target="_blank" rel="noreferrer" className="text-accent underline">
           Home Affairs: attach documents
         </a>

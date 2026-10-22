@@ -198,7 +198,8 @@ const CAMERA_NAME = /^(img|pxl|dsc|dscn|dcim|mvimg|photo|whatsapp image|signal|s
 export function printTitle(item: Pick<EvidenceItem, "title" | "fileName" | "kind">): string {
   if (item.title !== titleFromFileName(item.fileName)) return item.title;
   const stem = item.fileName.replace(/\.[a-z0-9]{1,5}$/i, "");
-  if (item.kind === "image" && CAMERA_NAME.test(stem)) return `Photo (${stem})`;
+  // iPhone screenshots share the camera's naming but are saved as PNG.
+  if (item.kind === "image" && CAMERA_NAME.test(stem)) return `${extensionOf(item.fileName) === "png" ? "Screenshot" : "Photo"} (${stem})`;
   return item.title;
 }
 
@@ -835,12 +836,7 @@ export async function buildPack(items: EvidenceItem[], options: BuildOptions, ct
     step("Wrote the evidence index");
   }
 
-  const rasterisedCount = files.filter((f) => f.rasterised).length;
-  if (rasterisedCount > 0) {
-    warnings.push(
-      `${rasterisedCount} ${rasterisedCount === 1 ? "file includes" : "files include"} pages re-rendered as images (locked or very large PDFs). They look the same but the text can’t be selected.`,
-    );
-  }
+  // Re-rendered pages are noted on each file in the results ("some pages re-rendered as images"), not as a warning.
   ctx.onProgress?.({ done: total, total, label: "Done" });
   return { files, warnings, skipped, itemCount: usable.length };
 }
@@ -916,7 +912,7 @@ async function renderIndex(files: BuiltFile[], options: BuildOptions, now: Date,
     y -= 20;
   }
   const prepared = `Prepared ${formatDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`)}`;
-  text(`${prepared} · ${files.length + 1} files to upload, including this index · ${documentCount} documents`, MARGIN, 10.5, "regular", MUTED);
+  text(`${prepared} · ${files.length + 1} attachments, including this index · ${documentCount} documents`, MARGIN, 10.5, "regular", MUTED);
   y -= 34;
 
   for (const file of files) {

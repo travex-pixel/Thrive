@@ -8,7 +8,10 @@
 - **No invented numbers, users or testimonials.** Say only what is true today. Never imply personal experience
   ("what worked for us") unless you really lodged one yourself.
 - **Follow each community's self-promotion rules.** If links aren't allowed, don't post one.
-- **Email (Spam Act 2003):** only email addresses that are published openly *for that purpose* and relate to the
+- **Direct messages count too (Spam Act 2003):** a commercial message by email, SMS or instant message (Facebook,
+  Instagram, TikTok DMs) must identify you (full name, business, contact) and offer an easy way to opt out. Every
+  variant below ends with that line; keep it.
+- **Email:** only email addresses that are published openly *for that purpose* and relate to the
   recipient's role (e.g. a blog's contact address for a partner-visa blog). Identify yourself and include a way to opt out.
 - Add a `?ref=` code to every link so you can see which channel worked.
 
@@ -34,10 +37,9 @@ Replace `<site>` with your live URL.
 
 ## Variant B: reply to "how do people organise 200+ evidence files?"
 
-> On the mechanical side, a common layout is one PDF per group of documents, in date order, with a contents page at
-> the front of each and a short index file listing everything. Every file has to be under 5 MB, there's a limit on how
-> many files each applicant can attach, and attachments can't be removed once added, so check each one before
-> uploading.
+> The technical rules are the tricky part: each file has to be under 5 MB, there's a limit on how many files each
+> applicant can attach (it depends on the application type, so check yours in ImmiAccount), and attachments can't be
+> removed once added. Home Affairs also has a form for documents that don't fit. Check each file before uploading.
 >
 > Disclosure: I built a tool that does that assembly automatically and runs entirely in your browser, so your bank
 > statements and photos never leave your computer. Packs of up to 10 files are free: <site>/build?ref=reddit-ausvisa
@@ -56,19 +58,22 @@ Replace `<site>` with your live URL.
 > Would you be OK with me sharing it once, or adding it to your files or resources? Happy to give members a discount
 > code, and to follow whatever rules you set. If it's not a fit, no worries at all. Thanks for running the group.
 >
-> <your first name>
+> <your full name>, LodgeReady, <support email>. If you'd rather I didn't message again, just say so and I won't.
 
 ## Variant D: creator documenting their partner visa journey (TikTok, Instagram, YouTube)
 
-> Hi <name>, I've been following your partner visa updates. I'm an Aussie developer and I built LodgeReady, which turns
+> Hi <name>, I saw your partner visa updates <only if true: say which video or post>. I'm an Aussie developer and I built LodgeReady, which turns
 > a messy pile of evidence (statements, photos, chats) into numbered PDFs sized for ImmiAccount, all under 5 MB, in date
 > order, with contents pages. It runs on your device, so nothing is uploaded.
 >
 > If it's useful for your own application, I'd love to give you free unlimited access. No strings. If you think your
 > followers would find it useful, I can also set up a discount code for them and pay you a commission on sales (fully
-> disclosed, of course). Here's a 60-second demo: <link>.
+> disclosed, of course; a commission deal needs the founder's legal check first, see REPORT.md). Here's a 60-second
+> demo: <link>.
 >
 > Either way, good luck with the application!
+>
+> <your full name>, LodgeReady, <support email>. If you'd rather I didn't message again, just say so and I won't.
 
 ## Variant E: email to a partner-visa blog owner (published contact address only)
 
@@ -98,4 +103,6 @@ Replace `<site>` with your live URL.
   For advice, please talk to a registered migration agent."
 - **"Too expensive"** → "Fair enough. The single-file fixer and packs of up to 10 files are free, and if you buy and
   change your mind, there's a full refund within 30 days."
+- **"Which group does my lease (or anything) go in?"** → "I can't tell you that: what goes where is your decision.
+  Home Affairs' partner visa pages explain what they look at, and a registered migration agent can advise you."
 - **Bug report** → thank them, ask for the file *type* and size only (never the file itself), fix it, and tell them.

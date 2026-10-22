@@ -1,4 +1,4 @@
-# Go-live checklist (about 45 minutes, A$0)
+# Go-live checklist (about 45 minutes, A$0–45)
 
 Nothing below has been done for you. Each step publishes something or creates an account in your name, so each
 one needs you.
@@ -15,7 +15,13 @@ one needs you.
 
 Fees: 1.65% + A$0.30 for Australian cards (≈ A$0.78 on A$29), and 3.5% + A$0.30 for international cards until April 2027.
 
-## 2. Netlify (hosting) — free plan, commercial use allowed
+## 2. Netlify (hosting) — free plan
+Netlify's free plan has a monthly allowance of **300 credits**, and each **production deploy uses 15**. When the
+credits run out, every site on the account is paused until the next month. So: test on deploy previews (free), batch
+production deploys, and decide now what you'd do if it runs low (the Personal plan is about US$9 a month and needs your
+approval). Commercial use appears to be allowed on the free plan (a Netlify staff answer says so), but check the current
+terms yourself.
+
 1. Sign in at app.netlify.com with GitHub → **Add new site → Import an existing project** → choose
    `travex-pixel/Thrive` and branch `ccr-ad122ae0-am60ag` (or `main` after you merge).
 2. Netlify reads `netlify.toml`: build command `npm run build`, Node 22. Leave the defaults.
@@ -32,6 +38,7 @@ Fees: 1.65% + A$0.30 for Australian cards (≈ A$0.78 on A$29), and 3.5% + A$0.3
 | `NEXT_PUBLIC_OPERATOR_NAME` | e.g. `Jane Citizen trading as LodgeReady` | Yes (shown in Privacy and Terms). The production build stops without it |
 | `NEXT_PUBLIC_OPERATOR_ABN` | Your ABN | Optional |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Public project key `phc_…` (see METRICS.md). Set it **only after** turning on "Discard client IP data" in that PostHog project: the privacy policy says IP addresses are discarded | Optional |
+| `REVOKED_SESSIONS` | Unlock links to switch off, comma-separated `cs_live_…` ids (e.g. one posted publicly). Refunded purchases are refused automatically | Optional |
 | `NEXT_PUBLIC_POSTHOG_HOST` | `https://us.i.posthog.com` or `https://eu.i.posthog.com` | Optional |
 
 > `NEXT_PUBLIC_*` values are built into the page and are visible to visitors. That's expected for these. The two
@@ -58,6 +65,16 @@ Fees: 1.65% + A$0.30 for Australian cards (≈ A$0.78 on A$29), and 3.5% + A$0.3
 - [ ] File names: if you (or a friend with consent) have a draft ImmiAccount application, upload one file of each name
       pattern (`00_Evidence_index.pdf`, `01_Financial_evidence_part1of2.pdf`, `05_Identity_Passport.pdf`) and check it is
       accepted. Never use a real, submitted application for testing: attachments can't be removed.
+
+## Before the first live sale (your decisions)
+- **Trading name:** register "LodgeReady" as a business name (needs an ABN; about A$45 a year) **or** trade under your
+  own name everywhere (Stripe public details, statement descriptor, operator name on the legal pages).
+- **Card statement descriptor:** Stripe → Settings → Public details → set it to `LODGEREADY` so buyers recognise the charge.
+- **GST:** the terms say the price includes GST "if any applies". If you're not registered for GST, you may prefer
+  "No GST is charged".
+- **Lost unlock links:** to resend one, find the payment in Stripe, open its Checkout Session (`cs_live_…`) and send
+  `https://<your-site>/unlock?session_id=<that id>` to the buyer's email.
+- **Legal check** of the clerical-tool positioning (A$220–500): see REPORT.md, decision 3.
 
 ## 4. Optional
 - **Custom domain** (≈ A$15–25 a year for `.com.au`, which needs an ABN, or ≈ A$15–20 for `.com`). Not needed for the

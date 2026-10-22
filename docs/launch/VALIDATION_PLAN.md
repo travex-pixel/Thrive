@@ -5,7 +5,7 @@ DIY partner-visa applicants who are 2–8 weeks from lodging will pay **A$29 onc
 messy evidence into numbered PDFs sized for ImmiAccount, **once they've seen their own pack built for free**.
 
 ## The offer (what is live)
-- **Free:** the single-file fixer (unlimited), plus building, previewing and downloading packs of up to 10 files.
+- **Free:** the single-file fixer (unlimited), plus building and previewing packs of any size, and downloading packs made from up to 10 documents.
 - **A$29 one-off:** unlimited files and rebuilds in the browser where they pay, a full refund within 30 days if they change their mind, and an unlock link for other browsers and devices.
 - **Promise:** files never leave the device. Users can verify this by turning on Airplane mode once the page has loaded.
 
@@ -48,9 +48,13 @@ across at least 3 channels, plus 5 creator or blog-owner messages.
 | 0 purchases, **< 100 qualified visitors** | The **channel** is the problem, not the product. Try creators or blogs, or paid search capped at A$50 (only with your approval) |
 | 0 purchases after 30 days despite changes | **Stop.** Fall back to the cash path (Airtasker data-entry service) or revisit the runner-up niche (`docs/research/REPORT.md`) |
 
-**Counting rules:**
+**Counting rules (one definition everywhere):**
+- A **sale** is a live-mode, unrefunded Stripe payment from a real customer (not you, not a friend you asked to test). It
+  counts on the day it clears, and is re-checked at day 30: if it was refunded by then, it's removed.
 - Interest, likes and "I'd pay for this" are not validation.
 - Stripe test payments, your own purchase, and anything refunded **do not count** as revenue.
+- **Turn on PostHog for the validation window** (A$0; METRICS.md). Without it, "qualified visitors" and "paywall views"
+  in the table above can't be measured, and the stopping rule can't be applied.
 
 ## Day-one plan (after go-live)
 1. Smoke-test the live site (DEPLOY.md §3). (30 min)

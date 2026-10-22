@@ -9,11 +9,13 @@ import { SegmentedControl } from "@/components/ui/Controls";
 import { Sheet } from "@/components/ui/Sheet";
 import { analyticsHost, bucket, captureRef, track } from "@/lib/analytics";
 import { downloadBlob, zipToBlob } from "@/lib/download";
-import { hasLicense, onLicenseStored, storeLicense } from "@/lib/license-client";
+import { InAppBrowserNotice } from "@/components/InAppBrowserNotice";
+import { UnlockLinkCard } from "@/components/UnlockLinkCard";
+import { getUnlockLink, hasLicense, onLicenseStored, storeLicense } from "@/lib/license-client";
 import { buildPack, BuildError, type BuiltFile } from "@/lib/pack/build";
 import { createItem, inspectItem } from "@/lib/pack/inspect";
 import { FREE_ITEM_LIMIT, PRICE_LABEL } from "@/lib/pack/limits";
-import { isUsable, planPack } from "@/lib/pack/plan";
+import { alreadyUploadedCount, isUsable, planPack } from "@/lib/pack/plan";
 import { isHeic } from "@/lib/pack/images";
 import type { CategoryId, EvidenceItem } from "@/lib/pack/types";
 import {
@@ -32,6 +34,7 @@ import { makeThumbnail } from "@/lib/thumbnails";
 import { AddStep } from "./AddStep";
 import { BuildStep, type CheckoutState } from "./BuildStep";
 import { ItemSheet } from "./ItemSheet";
+import { PreviewSheet } from "./PreviewSheet";
 import { SortStep } from "./SortStep";
 import { initialState, packSignature, reducer, type Step } from "./state";
 
@@ -100,6 +103,9 @@ export function BuilderApp() {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
+  // Editing a date from the "Check dates" sheet returns there afterwards.
+  const [returnToDates, setReturnToDates] = useState(false);
+  const [preview, setPreview] = useState<BuiltFile | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutState>({ status: "idle" });
   const [toast, setToast] = useState<string | null>(null);
@@ -214,7 +220,7 @@ export function BuilderApp() {
   // Pick up an unlock made in another tab (checkout or restore), and whenever this page is shown again.
   useEffect(() => {
     const sync = () => {
-      if (hasLicense()) dispatch({ type: "unlock" });
+      if (hasLicense()) dispatch({ type: "unlock", link: getUnlockLink() });
     };
     sync();
     const stop = onLicenseStored(sync);
@@ -243,6 +249,7 @@ export function BuilderApp() {
       void Promise.all(items.map((item, i) => saveFile(item.id, files[i]))).then(async (results) => {
         const failed = results.filter((ok) => !ok).length;
         if (failed > 0 && (await checkStorage())) {
+          track("storage_full", { count_bucket: bucket(failed) });
           setUnsavedCount((n) => n + failed);
           showToast(`${failed} ${failed === 1 ? "file" : "files"} couldn’t be saved in this browser. They work until you close this tab.`);
         }
@@ -291,6 +298,7 @@ export function BuilderApp() {
       // Not supported or not allowed: the progress note asks people to keep the screen on.
     }
     dispatch({ type: "buildStart", progress: { done: 0, total: 1, label: "Getting started" } });
+    track("build_started", { files_bucket: bucket(usable.length) });
     try {
       const result = await buildPack(
         state.items,
@@ -318,6 +326,9 @@ export function BuilderApp() {
       dispatch({ type: "buildDone", result, signature, seconds });
       track("pack_built", { files_bucket: bucket(result.itemCount), docs: bucket(result.files.length), seconds_bucket: bucket(Math.round(seconds)) });
       if (!(state.unlocked || result.itemCount <= FREE_ITEM_LIMIT)) track("paywall_shown", { files_bucket: bucket(result.itemCount) });
+      if (state.settings.limitConfirmed && result.files.length + alreadyUploadedCount(state.settings.startNumber) > state.settings.attachmentLimit) {
+        track("over_limit", { files_bucket: bucket(result.files.length) });
+      }
     } catch (error) {
       if (!current()) return; // a newer build (or Clear everything) has taken over
       if (error instanceof DOMException && error.name === "AbortError") {
@@ -333,33 +344,64 @@ export function BuilderApp() {
     } finally {
       void wakeLock?.release().catch(() => undefined);
     }
-  }, [signature, state.items, state.settings, state.unlocked]);
+  }, [signature, state.items, state.settings, state.unlocked, usable.length]);
 
   /* ------------------------------------------------------------ checkout */
   const unlockWith = useCallback(
-    (token: string, sessionId: string) => {
-      storeLicense(token, `${window.location.origin}/unlock?session_id=${encodeURIComponent(sessionId)}`);
+    (token: string, sessionId: string, how: "new" | "restore") => {
+      const first = !hasLicense();
+      const link = `${window.location.origin}/unlock?session_id=${encodeURIComponent(sessionId)}`;
+      storeLicense(token, link);
       pendingSessionRef.current = null;
-      dispatch({ type: "unlock" });
+      dispatch({ type: "unlock", link });
       setCheckout({ status: "idle" });
-      showToast("Unlocked. Thank you! Your downloads are ready.");
+      // Count each purchase once, whichever tab confirms it first.
+      if (first) track("purchase_verified", { result: how });
+      showToast(how === "restore" ? "Unlocked again. Welcome back!" : "Unlocked. Thank you! Your downloads are ready.");
     },
     [showToast],
   );
 
-  const checkPayment = useCallback(async () => {
-    const pending = pendingSessionRef.current;
-    if (!pending) return;
-    setCheckout({ status: "waiting", checking: true });
-    try {
-      const res = await fetch(`/api/verify?session_id=${encodeURIComponent(pending.id)}`, { cache: "no-store" });
-      const data = (await res.json().catch(() => ({}))) as { token?: string };
-      if (res.ok && data.token) return unlockWith(data.token, pending.id);
-    } catch {
-      // offline: try again later
-    }
-    if (pendingSessionRef.current) setCheckout({ status: "waiting", checking: false });
-  }, [unlockWith]);
+  const checkPayment = useCallback(
+    async (manual = false) => {
+      const pending = pendingSessionRef.current;
+      if (!pending) return;
+      setCheckout({ status: "waiting", checking: true });
+      try {
+        const res = await fetch(`/api/verify?session_id=${encodeURIComponent(pending.id)}`, { cache: "no-store" });
+        const data = (await res.json().catch(() => ({}))) as { token?: string };
+        if (res.ok && data.token) return unlockWith(data.token, pending.id, "new");
+        if (manual) showToast("No payment yet. If you’ve just paid, give it a few seconds.");
+      } catch {
+        if (manual) showToast("You seem to be offline. Reconnect, then tap “I’ve paid” again.");
+      }
+      if (pendingSessionRef.current) setCheckout({ status: "waiting", checking: false });
+    },
+    [showToast, unlockWith],
+  );
+
+  const cancelCheckout = useCallback(() => {
+    pendingSessionRef.current = null;
+    setCheckout({ status: "idle" });
+  }, []);
+
+  /** Restores a purchase in place (no page load), keeping the built pack. Returns an error message, or null. */
+  const restore = useCallback(
+    async (sessionId: string): Promise<string | null> => {
+      try {
+        const res = await fetch(`/api/verify?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
+        const data = (await res.json().catch(() => ({}))) as { token?: string; message?: string };
+        if (res.ok && data.token) {
+          unlockWith(data.token, sessionId, "restore");
+          return null;
+        }
+        return data.message ?? "We couldn’t confirm that purchase.";
+      } catch {
+        return "You seem to be offline. Connect to the internet to restore, then try again.";
+      }
+    },
+    [unlockWith],
+  );
 
   // While checkout is open in another tab, check for the payment whenever this tab is visible.
   // An unlock that arrives another way (the checkout tab, a restore) ends the wait.
@@ -446,6 +488,7 @@ export function BuilderApp() {
 
   const goTo = (step: Step) => {
     dispatch({ type: "step", step });
+    track("step_viewed", { kind: step });
     window.scrollTo({ top: 0 });
   };
 
@@ -475,7 +518,8 @@ export function BuilderApp() {
     actionLabel = "Building…";
     actionDisabled = true;
   } else if (state.build.status === "done" && !stale) {
-    hint = `${state.build.result.files.length} files ready to upload`;
+    const count = state.build.result.files.length;
+    hint = `${count} ${count === 1 ? "attachment" : "attachments"} ${canDownload ? "ready to upload" : "built"}`;
     if (canDownload) {
       action = "downloadAll";
       actionLabel = "Download all";
@@ -489,7 +533,7 @@ export function BuilderApp() {
       actionDisabled = checkoutState.status === "loading";
     }
   } else {
-    hint = inspectingCount > 0 ? `Checking ${inspectingCount} ${inspectingCount === 1 ? "file" : "files"}…` : `${plan.attachmentCount} ${plan.attachmentCount === 1 ? "file" : "files"} to build`;
+    hint = inspectingCount > 0 ? `Checking ${inspectingCount} ${inspectingCount === 1 ? "file" : "files"}…` : `${plan.attachmentCount} ${plan.attachmentCount === 1 ? "attachment" : "attachments"} to build`;
     action = "build";
     actionLabel = state.build.status === "done" ? "Rebuild pack" : "Build pack";
     actionDisabled = usable.length === 0 || inspectingCount > 0;
@@ -501,7 +545,7 @@ export function BuilderApp() {
     else if (action === "build") void startBuild();
     else if (action === "downloadAll") void downloadAll();
     else if (action === "checkout") void startCheckout();
-    else if (action === "checkPayment") void checkPayment();
+    else if (action === "checkPayment") void checkPayment(true);
   };
 
   return (
@@ -533,6 +577,7 @@ export function BuilderApp() {
       </header>
 
       <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 pb-36 pt-6">
+        <InAppBrowserNotice />
         {!state.ready ? (
           <p className="py-20 text-center text-label-3" aria-live="polite">
             Loading your files…
@@ -558,7 +603,15 @@ export function BuilderApp() {
             onClearSelection={() => dispatch({ type: "clearSelection" })}
             onRemove={removeItems}
             onOpenItem={setEditingId}
-            onConfirmDates={(ids) => dispatch({ type: "confirmDates", ids })}
+            onChangeDate={(id) => {
+              setDatesOpen(false);
+              setReturnToDates(true);
+              setEditingId(id);
+            }}
+            onConfirmDates={(ids) => {
+              dispatch({ type: "confirmDates", ids });
+              track("dates_confirmed", { result: ids.length === 1 ? "one" : "all", count_bucket: bucket(ids.length) });
+            }}
             datesOpen={datesOpen}
             onDatesOpen={setDatesOpen}
           />
@@ -572,12 +625,21 @@ export function BuilderApp() {
             checkout={checkoutState}
             onSettings={(patch) => dispatch({ type: "settings", patch })}
             onBuild={() => void startBuild()}
-            onCancel={() => abortRef.current?.abort()}
+            onCancel={() => {
+              abortRef.current?.abort();
+              track("build_cancelled");
+            }}
             onDownload={download}
             onDownloadAll={() => void downloadAll()}
             onUnlock={() => void startCheckout()}
-            onCheckPayment={() => void checkPayment()}
+            onCheckPayment={() => void checkPayment(true)}
+            onCancelCheckout={cancelCheckout}
             onRestore={() => setRestoreOpen(true)}
+            onPreview={(file) => {
+              setPreview(file);
+              track("preview_opened", { kind: file.kind });
+            }}
+            unlockLink={state.unlocked ? state.unlockLink : null}
             onCheckDates={() => {
               goTo("sort");
               setDatesOpen(true);
@@ -615,10 +677,20 @@ export function BuilderApp() {
 
       <ItemSheet
         item={editing}
-        onClose={() => setEditingId(null)}
+        onClose={() => {
+          setEditingId(null);
+          if (returnToDates) {
+            setReturnToDates(false);
+            setDatesOpen(true);
+          }
+        }}
         onSave={(patch) => {
           if (editing) dispatch({ type: "update", id: editing.id, patch });
           setEditingId(null);
+          if (returnToDates) {
+            setReturnToDates(false);
+            setDatesOpen(true);
+          }
         }}
         onRemove={() => {
           if (editing) removeItems([editing.id]);
@@ -640,6 +712,11 @@ export function BuilderApp() {
           </p>
           <p>Paying goes through Stripe’s secure checkout. We never see your card details.</p>
         </div>
+        {state.unlocked && state.unlockLink ? (
+          <div className="mt-5 rounded-2xl bg-surface-2 p-4">
+            <UnlockLinkCard link={state.unlockLink} compact />
+          </div>
+        ) : null}
         <div className="mt-5 rounded-2xl bg-surface-2 p-4">
           {confirmClear ? (
             <div className="grid grid-cols-1 gap-3">
@@ -677,7 +754,9 @@ export function BuilderApp() {
         </div>
       </Sheet>
 
-      <RestoreSheet open={restoreOpen} onClose={() => setRestoreOpen(false)} />
+      <RestoreSheet open={restoreOpen} onClose={() => setRestoreOpen(false)} onRestore={restore} />
+
+      <PreviewSheet file={preview} locked={!canDownload} onClose={() => setPreview(null)} />
 
       {lost ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-grouped/95 p-6 backdrop-blur" role="alertdialog" aria-labelledby="lost-title">
@@ -705,21 +784,34 @@ export function BuilderApp() {
   );
 }
 
-function RestoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function RestoreSheet({
+  open,
+  onClose,
+  onRestore,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onRestore: (sessionId: string) => Promise<string | null>;
+}) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
-  const submit = () => {
+  const submit = async () => {
     const match = /session_id=(cs_(?:test|live)_[A-Za-z0-9]+)/.exec(value) ?? /^(cs_(?:test|live)_[A-Za-z0-9]+)$/.exec(value.trim());
     if (!match) {
       setError("That doesn’t look like an unlock link. It should contain “session_id=cs_…”.");
       return;
     }
-    onClose();
-    // A full page load on purpose: a client-side navigation would keep this builder alive in the background (Cache
-    // Components), so it would never re-read the unlock. The unlock page sends you back to a freshly loaded builder.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.href = `/unlock?session_id=${encodeURIComponent(match[1])}&restore=1`;
+    // Checked right here, so the pack you've built stays on screen.
+    setBusy(true);
+    const problem = await onRestore(match[1]);
+    setBusy(false);
+    if (problem) setError(problem);
+    else {
+      setValue("");
+      onClose();
+    }
   };
   return (
     <Sheet open={open} onClose={onClose} title="Restore a purchase">
@@ -738,6 +830,7 @@ function RestoreSheet({ open, onClose }: { open: boolean; onClose: () => void })
           setValue(e.target.value);
           setError(null);
         }}
+        onKeyDown={(e) => e.key === "Enter" && void submit()}
         autoComplete="off"
         inputMode="url"
       />
@@ -746,8 +839,8 @@ function RestoreSheet({ open, onClose }: { open: boolean; onClose: () => void })
           {error}
         </p>
       ) : null}
-      <Button className="mt-4 w-full" size="lg" onClick={submit}>
-        Restore
+      <Button className="mt-4 w-full" size="lg" onClick={() => void submit()} disabled={busy}>
+        {busy ? "Checking…" : "Restore"}
       </Button>
       <p className="mt-4 text-[0.8125rem] text-label-3">
         Lost your link?{" "}

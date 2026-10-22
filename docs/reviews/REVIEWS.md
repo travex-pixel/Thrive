@@ -85,3 +85,69 @@ was no eval switch to turn off (checked in the bundled worker).
 
 Not fixable in code: **a migration-law opinion before the first sale** (estimated A$220–500). The product now stays on
 the clerical side as far as we can design it, but only a lawyer can confirm that. This is a decision for the founder.
+
+---
+
+## Review A: CEO (after the B/D/E fixes)
+
+Verdict: **GO for validation** (deployment stays the founder's decision); nothing critical. The constraint on the first
+sale is reaching couples in the weeks before they lodge, not the product.
+
+| # | Sev. | Finding | Fix | Retest |
+|---|---|---|---|---|
+| A-H1 | High | Free tier counted "files" ambiguously (input documents vs output PDFs) and "preview a pack of any size" wasn't true while locked | "Up to 10 documents (any number of pages)"; "attachments" for outputs; a real watermarked preview now exists (see C1) | E2E restore/preview test; screenshots |
+| A-H2 | High | Launch called "A$0" but trading as "LodgeReady" needs an ABN and a business name (~A$45 a year) | Checklist retitled A$0–45; "Before the first live sale" decisions added; REPORT corrected | Docs |
+| A-H3 | High | "30 to 60 attachments" was credited to Home Affairs, but the only source is a 2015 embassy guide; a migration blog says 100 for partner visas | No range is quoted any more: "the limit depends on the application type, check yours"; presets 30/60/100/Other; link to Home Affairs' additional-documents form | E2E limit test |
+| A-M1 | Medium | Example pack assumed unlocked statements | Caption says so, and that locked ones take more space | Screenshot |
+| A-M2 | Medium | Refunds and shared links never switched off an unlock | Verify refuses refunded/disputed payments; `REVOKED_SESSIONS` switch; terms say so (already-unlocked browsers keep working offline: accepted) | Typecheck; code review |
+| A-M3 | Medium | Netlify free plan's 300-credit cap (15 per production deploy; sites pause when exhausted) undocumented | Documented, with a plan | Docs |
+| A-M4 | Medium | Outreach Variant B drifted into presentation advice; direct messages lacked Spam Act identification and opt-out | Variant B now quotes only the technical rules; stock answer for "which group?"; full-name sign-off and opt-out on every direct message | Docs |
+| A-M5 | Medium | Stopping rule needed PostHog but analytics was optional; three different definitions of a sale | PostHog required for the validation window; one definition of a sale | Docs |
+| A-M6 | Medium | Docs disagreed on when to get the legal opinion | Both positions stated; founder decides (before the first sale, or at the latest before commissions, ads or the 10th sale) | Docs |
+| A-L | Low | Lost-link process, statement descriptor, "don't email us documents", what happens if the service closes, LGPL notice for libheif, stale doc references | All added or corrected | Docs |
+
+## Review C: CPO (after the B/D/E fixes)
+
+| # | Sev. | Finding | Fix | Retest |
+|---|---|---|---|---|
+| C1 | Critical | Nothing to look at before paying: only file names | Watermarked preview of every built PDF (first pages while locked; the index in full) | E2E `restoring a purchase…` opens a preview; screenshots |
+| C2 | High | Users couldn't look at their own files | File details shows the photo and an "Open the file" link (opens from this device) | a11y E2E on the file sheet |
+| C3 | High | "All N dates are right" was the only fast path; "Change" closed the sheet | One-tap "Right" per date; changing a date returns to the sheet | E2E core journey; a11y |
+| C4 | High | After a self-unlock, the unlock link was never shown | "Save your unlock link" card (copy, email to myself) after unlocking and in the privacy sheet | E2E restore test |
+| C5 | High | A pack over the limit was shown as "ready"; earlier uploads not counted | "Over your attachment limit" result with one-tap fixes; earlier uploads count | Unit test; screenshot |
+| C6 | High | Not tested at real sizes or in Safari; in-app browsers (Facebook, Instagram, TikTok) break downloads | In-app-browser banner; new funnel events (`build_started`, `over_limit`…). **Real-device tests can't be done here: founder action** | — |
+| C7–C13 | Medium | Too many notices; "files" meant three things; groups unexplained; price shown late; checkout loose ends; no bulk labelling; adding evidence later | Wording unified (files in, attachments out); raster note moved onto each file; price line in Add; "I've paid" says when nothing arrived; Cancel; checkout tab shows only "Close this tab"; restore happens in place; no bulk move for "Couldn't tell". Deferred: bulk labelling, "mark as uploaded", undo | E2E |
+| C-L | Low | Broken dates in titles, iPhone screenshots titled as photos, folder-picker "upload" wording, metrics gaps | "2025-01" kept; PNG camera names are "Screenshot (…)"; note under the folder button; events added; purchase counted once from whichever tab confirms | Unit + E2E |
+
+---
+
+## Review F: final investment committee
+
+**Found in this review, Critical: text in generated PDFs was mostly blank.** Rendering a built pack (pdf.js and,
+independently, poppler) showed contents pages, captions and the index drawn with most glyphs missing. pdf-lib's font
+subsetting mishandled the full, hinted Noto Sans files; every earlier test read the text layer (correct) rather than the
+drawn page. Fix: fonts pre-trimmed with fonttools (hinting removed, Latin/Vietnamese/Greek/Cyrillic kept;
+`scripts/subset-fonts.sh`), font URLs versioned so cached copies are replaced, and a regression test that renders a real
+page with poppler and counts ink (it fails on the old fonts, passes on the new). Re-checked by eye in both renderers.
+
+**Evidence now:** 99 unit tests; 45 end-to-end tests on desktop and an iPhone-sized viewport (real PDFs, HEIC, locked
+and oversized files, offline building, accessibility with axe, 44 pt targets, checkout and restore with Stripe mocked);
+typecheck and lint clean; screenshots reviewed in light and dark mode.
+
+**Not verified (cannot be done from here):** Safari/WebKit and real phones (the iPhone tests run Chromium); packs of
+150–400 files on a phone; a real Stripe payment; a real ImmiAccount upload of the file-name patterns; the current
+attachment limit for 820/801 and 309/100.
+
+**Decision: GO to validation, conditional on the founder's approvals.** The product does what it says, the claims match
+the code, and the remaining risks are distribution, legal positioning and real-device behaviour, none of which more
+code in this session can retire.
+
+Conditions before the first real customer:
+1. Founder approves and performs: Stripe account, Netlify deploy, environment variables, smoke test (DEPLOY.md).
+2. Trading-name decision (register "LodgeReady" ~A$45/yr, or trade under own name).
+3. Real-device check: one 100+ file pack on an iPhone (Safari) and an Android phone; one draft ImmiAccount upload.
+4. Legal opinion timing decided (A$220–500).
+5. PostHog project with IP discarding switched on for the validation window.
+
+Biggest risk: reaching couples in the few weeks before they lodge, in communities that restrict self-promotion.
+Fallback if the stopping rule triggers: see VALIDATION_PLAN.md.

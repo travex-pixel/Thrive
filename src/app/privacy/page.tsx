@@ -43,14 +43,16 @@ export default function PrivacyPage() {
       <h2>Usage statistics</h2>
       <p>
         If usage statistics are switched on, we record a small number of anonymous events to understand whether LodgeReady
-        is working: “home page viewed”, “builder opened”, “files added”, “pack built”, “build failed”, “unlock shown”,
-        “checkout started”, “checkout unavailable”, “purchase confirmed”, “download clicked” and “fixer used”. Each event
-        can include only these details:
+        is working: “home page viewed”, “builder opened”, “step viewed”, “files added”, “dates confirmed”, “build started”,
+        “build cancelled”, “pack built”, “build failed”, “over the attachment limit”, “preview opened”, “unlock shown”,
+        “checkout started”, “checkout unavailable”, “purchase confirmed”, “download clicked”, “unlock link saved”,
+        “opened in an app’s built-in browser”, “browser storage full” and “fixer used”. Each event can include only these
+        details:
       </p>
       <ul>
         <li>the page address, without anything after the “?”;</li>
         <li>rough counts in ranges, such as “11–50 files” or “11–50 seconds”;</li>
-        <li>the kind of file or download (for example “PDF” or “zip”) and whether something worked;</li>
+        <li>the kind of file, step or download (for example “PDF”, “sort” or “zip”), the app whose browser you’re in, and whether something worked;</li>
         <li>whether this browser has unlocked LodgeReady;</li>
         <li>the short code on the link you followed to get here, if any (for example “?ref=forum”);</li>
         <li>a random identifier that lasts only for your browser tab session, and the time.</li>
