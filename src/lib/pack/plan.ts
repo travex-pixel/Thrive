@@ -1,7 +1,8 @@
 import { CATEGORIES, effectiveCategory, getCategory } from "./categories";
-import { dateSortKey } from "./dates";
-import { TARGET_BYTES } from "./limits";
-import { INDEX_FILE_NAME, extensionOf, mergedDocFileName, separateDocFileName } from "./naming";
+import { dateSortKey, isUncheckedDate } from "./dates";
+import { LOWEST_KNOWN_LIMIT, TARGET_BYTES } from "./limits";
+import { extensionOf, indexFileName, mergedDocFileName, numbering, separateDocFileName } from "./naming";
+import { hasUnprintableText } from "./text";
 import type { CategoryId, EvidenceItem, PackPlan, PackSettings, PlannedDoc, PlannedDocKind } from "./types";
 
 /** Bytes reserved per merged PDF for cover pages and the embedded font subset. */
@@ -14,13 +15,19 @@ export const CONTENT_BUDGET_BYTES = TARGET_BYTES - COVER_OVERHEAD_BYTES;
  * much smaller); copyable PDFs keep roughly their size; locked PDFs are
  * re-rendered page by page. The builder measures real sizes and adapts, so
  * this only needs to be good enough for a preview.
+ *
+ * Photos: a typical 3 MB phone photo re-encoded at 1600 px is roughly 300–450 KB, about half that with smaller photos.
  */
-export function estimateItemBytes(item: Pick<EvidenceItem, "kind" | "size" | "pageCount" | "encrypted" | "mimeType" | "fileName">): number {
+export function estimateItemBytes(
+  item: Pick<EvidenceItem, "kind" | "size" | "pageCount" | "encrypted" | "mimeType" | "fileName">,
+  compactPhotos = false,
+): number {
   switch (item.kind) {
     case "image": {
       const ext = extensionOf(item.fileName);
-      const ratio = ext === "png" || ext === "bmp" ? 0.25 : 0.4;
-      return Math.round(Math.min(Math.max(item.size * ratio, 120_000), 900_000));
+      const ratio = ext === "png" || ext === "bmp" || ext === "gif" ? 0.12 : 0.15;
+      const estimate = Math.min(Math.max(item.size * ratio, 120_000), 600_000);
+      return Math.round(compactPhotos ? estimate * 0.5 : estimate);
     }
     case "pdf": {
       if (item.encrypted) return (item.pageCount ?? 1) * 260_000;
@@ -53,7 +60,7 @@ interface Partition {
 }
 
 /** Greedy, order-preserving packing of items into files under the content budget. */
-export function partitionItems(items: EvidenceItem[], budget = CONTENT_BUDGET_BYTES): Partition[] {
+export function partitionItems(items: EvidenceItem[], budget = CONTENT_BUDGET_BYTES, compactPhotos = false): Partition[] {
   const partitions: Partition[] = [];
   let current: EvidenceItem[] = [];
   let currentBytes = 0;
@@ -67,7 +74,7 @@ export function partitionItems(items: EvidenceItem[], budget = CONTENT_BUDGET_BY
   };
 
   for (const item of items) {
-    const bytes = estimateItemBytes(item);
+    const bytes = estimateItemBytes(item, compactPhotos);
     if (current.length > 0 && currentBytes + bytes > budget) flush();
     current.push(item);
     currentBytes += bytes;
@@ -87,7 +94,7 @@ export interface DocGroup {
 }
 
 /** Splits usable items into output groups, in upload order. */
-export function groupItems(items: EvidenceItem[]): DocGroup[] {
+export function groupItems(items: EvidenceItem[], compactPhotos = false): DocGroup[] {
   const usable = items.filter(isUsable);
   const groups: DocGroup[] = [];
 
@@ -99,7 +106,7 @@ export function groupItems(items: EvidenceItem[]): DocGroup[] {
     const passthrough = catItems.filter((i) => i.kind === "passthrough");
 
     if (category.mode === "merge") {
-      const partitions = partitionItems(convertible);
+      const partitions = partitionItems(convertible, CONTENT_BUDGET_BYTES, compactPhotos);
       const totalParts = partitions.reduce((sum, p) => sum + p.parts, 0);
       let partNo = 0;
       for (const partition of partitions) {
@@ -117,8 +124,8 @@ export function groupItems(items: EvidenceItem[]): DocGroup[] {
       }
     } else {
       for (const item of convertible) {
-        const bytes = estimateItemBytes(item);
-        const parts = item.kind === "pdf" && bytes > CONTENT_BUDGET_BYTES ? Math.ceil(bytes / CONTENT_BUDGET_BYTES) : 1;
+        const bytes = estimateItemBytes(item, compactPhotos);
+        const parts = bytes > CONTENT_BUDGET_BYTES ? Math.ceil(bytes / CONTENT_BUDGET_BYTES) : 1;
         for (let part = 1; part <= parts; part++) {
           groups.push({
             kind: "separate",
@@ -146,15 +153,16 @@ export function groupItems(items: EvidenceItem[]): DocGroup[] {
   return groups;
 }
 
-/** Assigns numbered, upload-ordered file names. Index (if any) is always 00. */
-export function nameGroups(groups: DocGroup[], includeIndex: boolean): PlannedDoc[] {
+/** Assigns numbered, upload-ordered file names. The index (if any) comes first. */
+export function nameGroups(groups: DocGroup[], includeIndex: boolean, startNumber = 1): PlannedDoc[] {
   const docs: PlannedDoc[] = [];
+  const { indexNumber, firstFile } = numbering(startNumber, includeIndex);
   if (includeIndex) {
     docs.push({
       key: "index",
       kind: "index",
       category: "other",
-      fileName: INDEX_FILE_NAME,
+      fileName: indexFileName(indexNumber),
       itemIds: groups.flatMap((g) => g.items.map((i) => i.id)),
       estimatedBytes: 40_000 + groups.reduce((n, g) => n + g.items.length, 0) * 600,
       part: 1,
@@ -162,7 +170,7 @@ export function nameGroups(groups: DocGroup[], includeIndex: boolean): PlannedDo
     });
   }
 
-  let number = 0;
+  let number = firstFile - 1;
   groups.forEach((group, i) => {
     number++;
     const label = getCategory(group.category).label;
@@ -189,26 +197,35 @@ export function nameGroups(groups: DocGroup[], includeIndex: boolean): PlannedDo
   return docs;
 }
 
-export function planPack(items: EvidenceItem[], settings: PackSettings): PackPlan {
+export function planPack(items: EvidenceItem[], settings: PackSettings & { names?: string; limitConfirmed?: boolean }): PackPlan {
   const usable = items.filter(isUsable);
   const unusable = items.length - usable.length;
   const unsortedCount = usable.filter((i) => i.category === "unsorted").length;
-  const groups = groupItems(items);
-  const docs = usable.length > 0 ? nameGroups(groups, settings.includeIndex) : [];
+  const uncheckedDateCount = usable.filter(isUncheckedDate).length;
+  const unprintable = usable.filter((i) => hasUnprintableText(i.title)).length + (settings.names && hasUnprintableText(settings.names) ? 1 : 0);
+  const groups = groupItems(items, settings.compactPhotos);
+  const docs = usable.length > 0 ? nameGroups(groups, settings.includeIndex, settings.startNumber) : [];
   const attachmentCount = docs.length;
-  const overLimit = attachmentCount > settings.attachmentLimit;
+  const limitKnown = settings.limitConfirmed !== false;
+  const needsLimitCheck = !limitKnown && attachmentCount > LOWEST_KNOWN_LIMIT;
+  const overLimit = limitKnown && attachmentCount > settings.attachmentLimit;
 
   const warnings: string[] = [];
   if (unsortedCount > 0) {
-    warnings.push(`${unsortedCount} unsorted ${unsortedCount === 1 ? "file goes" : "files go"} into “Other”.`);
+    warnings.push(`${unsortedCount} ${unsortedCount === 1 ? "file isn’t" : "files aren’t"} in a group yet, so ${unsortedCount === 1 ? "it goes" : "they go"} into “Other”.`);
   }
   if (unusable > 0) {
     warnings.push(`${unusable} ${unusable === 1 ? "file can’t" : "files can’t"} be used and will be left out.`);
   }
+  if (unprintable > 0) {
+    warnings.push(
+      `${unprintable} ${unprintable === 1 ? "title or name uses" : "titles or names use"} characters LodgeReady can’t print (for example Chinese, Arabic or Hindi script). They’ll show as “?”. Use English letters if you can.`,
+    );
+  }
   if (overLimit) {
     warnings.push(
-      `This pack needs ${attachmentCount} attachments but your limit is ${settings.attachmentLimit}. ` +
-        "Move some separate files into a merged group, or check the limit shown in your ImmiAccount.",
+      `This pack has ${attachmentCount} files and your limit is set to ${settings.attachmentLimit}. ` +
+        `Change what’s in the pack${settings.compactPhotos ? "" : ", turn on smaller photos"}${settings.includeIndex ? ", or turn off the index" : ""}.`,
     );
   }
 
@@ -219,6 +236,8 @@ export function planPack(items: EvidenceItem[], settings: PackSettings): PackPla
     overLimit,
     usableItemCount: usable.length,
     unsortedCount,
+    uncheckedDateCount,
+    needsLimitCheck,
     warnings,
   };
 }

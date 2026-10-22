@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderOpen, HardDrive, LoaderCircle, Lock, Plus, ShieldCheck, X } from "lucide-react";
+import { FolderOpen, HardDrive, LoaderCircle, Plus, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Notice } from "@/components/ui/Controls";
 import { cx } from "@/components/ui/cx";
@@ -17,6 +17,7 @@ export function AddStep({
   inspecting,
   thumbs,
   storageOk,
+  unsavedCount,
   onFiles,
   onRemove,
   onOpenItem,
@@ -25,6 +26,8 @@ export function AddStep({
   inspecting: string[];
   thumbs: Map<string, string>;
   storageOk: boolean;
+  /** Files this browser refused to store (usually because it's full). */
+  unsavedCount: number;
   onFiles: (files: File[]) => void;
   onRemove: (id: string) => void;
   onOpenItem: (id: string) => void;
@@ -136,10 +139,16 @@ export function AddStep({
         />
       </div>
 
-      {storageOk ? (
+      {storageOk && unsavedCount > 0 ? (
+        <Notice tone="warning" icon={<HardDrive className="size-5 text-warning" aria-hidden="true" />}>
+          This browser couldn’t save {unsavedCount} {unsavedCount === 1 ? "file" : "files"} (its storage may be full). Everything
+          still works now, but {unsavedCount === 1 ? "it" : "they"} won’t be here if you close this tab.
+        </Notice>
+      ) : storageOk ? (
         <p className="flex items-start gap-2 text-[0.875rem] text-label-3">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-          Files stay on this device. They’re saved in this browser so you can come back later, and are never uploaded.
+          Files stay on this device and are never uploaded. They’re saved in this browser so you can come back later; keep
+          your originals too.
         </p>
       ) : (
         <Notice tone="warning" icon={<HardDrive className="size-5 text-warning" aria-hidden="true" />}>
@@ -179,6 +188,7 @@ export function AddStep({
                           [
                             formatBytes(item.size),
                             item.pageCount ? `${item.pageCount} ${item.pageCount === 1 ? "page" : "pages"}` : null,
+                            item.encrypted ? "locked PDF: a clean copy will be made" : null,
                             item.date ? formatDate(item.date) : null,
                           ]
                             .filter(Boolean)
@@ -189,10 +199,6 @@ export function AddStep({
                   {checking ? (
                     <span className="inline-flex items-center gap-1 text-[0.8125rem] text-label-3" aria-label="Checking file">
                       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                    </span>
-                  ) : item.encrypted ? (
-                    <span title="Locked PDF: will be re-rendered as a clean copy" className="text-label-3">
-                      <Lock className="size-4" aria-label="Locked PDF" />
                     </span>
                   ) : null}
                   <button

@@ -5,7 +5,8 @@
 - **Always disclose:** "I built this", or "I'm the developer". Never pretend to be a happy customer.
 - **No advice on *what* evidence to include or whether it's enough.** That is immigration assistance. Point people to
   Home Affairs or a registered migration agent instead.
-- **No invented numbers, users or testimonials.** Say only what is true today.
+- **No invented numbers, users or testimonials.** Say only what is true today. Never imply personal experience
+  ("what worked for us") unless you really lodged one yourself.
 - **Follow each community's self-promotion rules.** If links aren't allowed, don't post one.
 - **Email (Spam Act 2003):** only email addresses that are published openly *for that purpose* and relate to the
   recipient's role (e.g. a blog's contact address for a partner-visa blog). Identify yourself and include a way to opt out.
@@ -26,19 +27,20 @@ Replace `<site>` with your live URL.
 >    gets hard to read.
 > 3. **"Secured" bank statements** that won't upload: printing them to a new PDF usually gives a clean copy.
 >
-> Disclosure: I got sick of doing this by hand, so I built a free tool that does all three in your browser. Nothing
-> is uploaded, and it works with your Wi-Fi off: <site>/fix?ref=reddit-ausvisa
+> Disclosure: I built a free tool that does all three in your browser. Nothing is uploaded, and once it has loaded it
+> keeps working in Airplane mode: <site>/fix?ref=reddit-ausvisa
 >
 > For anything about *what* evidence to include, the Home Affairs partner visa page is the source of truth.
 
 ## Variant B: reply to "how do people organise 200+ evidence files?"
 
-> What worked for us mechanically: one PDF per type of evidence, documents in date order, a contents page at the
-> front of each, and a short index file listing everything. Keep IDs and signed forms as their own files. Every file
-> has to be under 5 MB, and you can't delete attachments after you submit, so check each one before uploading.
+> On the mechanical side, a common layout is one PDF per group of documents, in date order, with a contents page at
+> the front of each and a short index file listing everything. Every file has to be under 5 MB, there's a limit on how
+> many files each applicant can attach, and attachments can't be removed once added, so check each one before
+> uploading.
 >
 > Disclosure: I built a tool that does that assembly automatically and runs entirely in your browser, so your bank
-> statements and photos never leave your computer. It's free up to 10 files: <site>/build?ref=reddit-ausvisa
+> statements and photos never leave your computer. Packs of up to 10 files are free: <site>/build?ref=reddit-ausvisa
 >
 > (It only does the filing. For what to include, go by the Home Affairs guidance or a registered agent.)
 
@@ -59,8 +61,8 @@ Replace `<site>` with your live URL.
 ## Variant D: creator documenting their partner visa journey (TikTok, Instagram, YouTube)
 
 > Hi <name>, I've been following your partner visa updates. I'm an Aussie developer and I built LodgeReady, which turns
-> a messy pile of evidence (statements, photos, chats) into ImmiAccount-ready PDFs, all under 5 MB, in date order, with
-> contents pages. It runs on your device, so nothing is uploaded.
+> a messy pile of evidence (statements, photos, chats) into numbered PDFs sized for ImmiAccount, all under 5 MB, in date
+> order, with contents pages. It runs on your device, so nothing is uploaded.
 >
 > If it's useful for your own application, I'd love to give you free unlimited access. No strings. If you think your
 > followers would find it useful, I can also set up a discount code for them and pay you a commission on sales (fully
@@ -91,9 +93,9 @@ Replace `<site>` with your live URL.
 
 ## Handling replies
 - **"Is this legit / where do my files go?"** → "They don't go anywhere. It all runs in your browser. Load the builder,
-  turn off your Wi-Fi, and build a pack. It still works."
+  turn on Airplane mode, and build a pack. It still works."
 - **"Will this get my visa approved?"** → "No tool can promise that. LodgeReady only organises and formats your files.
   For advice, please talk to a registered migration agent."
-- **"Too expensive"** → "Fair enough. The single-file fixer and packs of up to 10 files are free, and there's a 30-day
-  refund if the paid version doesn't help."
+- **"Too expensive"** → "Fair enough. The single-file fixer and packs of up to 10 files are free, and if you buy and
+  change your mind, there's a full refund within 30 days."
 - **Bug report** → thank them, ask for the file *type* and size only (never the file itself), fix it, and tell them.

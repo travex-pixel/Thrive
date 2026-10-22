@@ -15,26 +15,51 @@ export function getStripe(): Stripe | null {
   return client;
 }
 
-/**
- * The public site URL used in Stripe redirect URLs. Always prefer the
- * configured value in production so redirects can't be influenced by a
- * spoofed Host header.
- */
-export function siteOrigin(request: Request): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configured) return configured.replace(/\/$/, "");
-  return new URL(request.url).origin;
+function normalise(origin: string): string | null {
+  try {
+    return new URL(origin.trim()).origin;
+  } catch {
+    return null;
+  }
 }
 
-/** Rejects cross-site POSTs. Browsers always send Origin on cross-origin POST requests. */
-export function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return true; // same-origin navigations/fetches from older browsers
-  try {
-    return new URL(origin).host === new URL(siteOrigin(request)).host;
-  } catch {
-    return false;
-  }
+/**
+ * Origins allowed to start checkout and to receive Stripe's redirects. Read at request time (not NEXT_PUBLIC_*,
+ * which is fixed into the code at build time), so a custom domain, a www alias or a deploy preview can be added in
+ * the hosting settings without a rebuild:
+ *   SITE_URL         the main address, e.g. https://lodgeready.example
+ *   ALLOWED_ORIGINS  optional extra addresses, comma-separated
+ */
+export function allowedOrigins(request: Request): string[] {
+  const configured = [process.env.SITE_URL, process.env.NEXT_PUBLIC_SITE_URL, ...(process.env.ALLOWED_ORIGINS ?? "").split(",")]
+    .filter((v): v is string => Boolean(v && v.trim()))
+    .map(normalise)
+    .filter((v): v is string => Boolean(v));
+  // Local development with nothing configured: the request's own origin.
+  return configured.length > 0 ? [...new Set(configured)] : [new URL(request.url).origin];
+}
+
+/** The site's main address, used when a request doesn't say where it came from. */
+export function siteOrigin(request: Request): string {
+  return allowedOrigins(request)[0];
+}
+
+/**
+ * Where Stripe should send the buyer back: the page they paid from, if that address is allowed. Never taken from
+ * the Host header, so a spoofed host can't redirect anyone.
+ */
+export function returnOrigin(request: Request): string {
+  const origin = normalise(request.headers.get("origin") ?? "");
+  return origin && allowedOrigins(request).includes(origin) ? origin : siteOrigin(request);
+}
+
+/**
+ * Accepts only POSTs from our own pages. Browsers always send Origin on POST requests, so a missing Origin means
+ * the request didn't come from a browser page and is refused.
+ */
+export function isAllowedOrigin(request: Request): boolean {
+  const origin = normalise(request.headers.get("origin") ?? "");
+  return Boolean(origin && allowedOrigins(request).includes(origin));
 }
 
 export const CHECKOUT_SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{10,200}$/;

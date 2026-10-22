@@ -6,7 +6,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "LodgeReady — Partner visa evidence, ready for ImmiAccount",
+    default: "LodgeReady: partner visa evidence, sized and sorted for ImmiAccount",
     template: "%s · LodgeReady",
   },
   description:
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "LodgeReady",
-    title: "Your partner visa evidence, ready for ImmiAccount",
+    title: "Your partner visa evidence, sized and sorted for ImmiAccount",
     description: "Organised, date-ordered PDFs under 5 MB — built on your device. Nothing is uploaded.",
     locale: "en_AU",
   },

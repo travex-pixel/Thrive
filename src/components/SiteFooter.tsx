@@ -39,7 +39,7 @@ export function SiteFooter() {
               Privacy
             </Link>
             <Link className="inline-flex min-h-11 items-center text-label-2 hover:text-label" href="/terms">
-              Terms &amp; refunds
+              Terms and refunds
             </Link>
             {supportEmail ? (
               <a className="inline-flex min-h-11 items-center text-label-2 hover:text-label" href={`mailto:${supportEmail}`}>
@@ -48,7 +48,7 @@ export function SiteFooter() {
             ) : null}
           </nav>
         </div>
-        <p className="mt-8 text-[0.8125rem] text-label-3">Made in Australia. Your files never leave your device.</p>
+        <p className="mt-8 text-[0.8125rem] text-label-3">Your files never leave your device.</p>
       </div>
     </footer>
   );

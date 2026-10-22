@@ -3,11 +3,12 @@
 import { Trash2 } from "lucide-react";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { SegmentedControl } from "@/components/ui/Controls";
+import { SegmentedControl, Switch } from "@/components/ui/Controls";
 import { Sheet } from "@/components/ui/Sheet";
 import { CATEGORIES, UNSORTED } from "@/lib/pack/categories";
-import { formatDate, normaliseDateInput } from "@/lib/pack/dates";
+import { formatDate, isUncheckedDate, normaliseDateInput } from "@/lib/pack/dates";
 import { formatBytes } from "@/lib/download";
+import { hasUnprintableText } from "@/lib/pack/text";
 import type { CategoryId, EvidenceItem } from "@/lib/pack/types";
 
 type Precision = "day" | "month" | "year";
@@ -40,6 +41,8 @@ function ItemForm({ item, onClose, onSave, onRemove }: ItemSheetProps & { item: 
   const [dateValue, setDateValue] = useState(item.date ?? "");
   const [category, setCategory] = useState<CategoryId>(item.category);
   const [dateError, setDateError] = useState<string | null>(null);
+  const automatic = isUncheckedDate(item);
+  const [dateConfirmed, setDateConfirmed] = useState(false);
 
   const changePrecision = (next: Precision) => {
     setPrecision(next);
@@ -58,13 +61,9 @@ function ItemForm({ item, onClose, onSave, onRemove }: ItemSheetProps & { item: 
       setDateError("That date doesn’t look right. Try the picker, or clear it.");
       return;
     }
-    onSave({
-      title: trimmed.slice(0, 120),
-      date,
-      dateSource: date === item.date ? item.dateSource : date ? "user" : null,
-      category,
-      suggested: category === item.category ? item.suggested : false,
-    });
+    // Changing a date, or confirming an automatic one, makes it the user's: only then is it printed.
+    const dateSource = !date ? null : date !== item.date || dateConfirmed ? "user" : item.dateSource;
+    onSave({ title: trimmed.slice(0, 120), date, dateSource, category });
   };
 
   return (
@@ -101,7 +100,15 @@ function ItemForm({ item, onClose, onSave, onRemove }: ItemSheetProps & { item: 
         onKeyDown={(e) => e.key === "Enter" && save()}
         autoComplete="off"
       />
-      <p className="mt-1 text-[0.8125rem] text-label-3">Shown on the contents page and in the index, e.g. “Joint account statement”.</p>
+      {hasUnprintableText(title) ? (
+        <p className="mt-1 text-[0.8125rem] text-danger">
+          Some characters in this title can’t be printed and will show as “?”. Use English letters if you can.
+        </p>
+      ) : (
+        <p className="mt-1 text-[0.8125rem] text-label-3">
+          Printed above photos, on the contents page and in the index, e.g. “Joint account statement”.
+        </p>
+      )}
 
       <div className="mt-5 flex items-end justify-between gap-3">
         <label htmlFor={ids.date} className="block text-[0.9375rem] font-medium">
@@ -154,9 +161,17 @@ function ItemForm({ item, onClose, onSave, onRemove }: ItemSheetProps & { item: 
         <p className="mt-1 text-[0.875rem] text-danger" role="alert">
           {dateError}
         </p>
+      ) : automatic && dateValue === item.date ? (
+        <div className="mt-2 rounded-xl bg-warning-tint px-3 py-1">
+          <p className="pt-1.5 text-[0.8125rem] text-label">
+            {formatDate(item.date)} was filled in from {item.dateSource === "exif" ? "the photo’s data" : "the file name"}. It
+            sets the order, and is only printed on your PDFs once you confirm it.
+          </p>
+          <Switch checked={dateConfirmed} onChange={setDateConfirmed} label="This date is right" />
+        </div>
       ) : (
         <p className="mt-1 text-[0.8125rem] text-label-3">
-          {item.date ? `Currently ${formatDate(item.date)}${item.dateSource === "exif" ? " (from the photo)" : item.dateSource === "filename" ? " (from the file name)" : ""}.` : "Used to put documents in date order."}
+          {dateValue ? "Printed on your PDFs and used for date order." : "Used to put documents in date order, and printed on your PDFs."}
         </p>
       )}
 

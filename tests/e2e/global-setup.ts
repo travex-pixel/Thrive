@@ -42,6 +42,37 @@ function noisePng(width: number, height: number): Buffer {
   ]);
 }
 
+/** A long "scrolling chat" screenshot: message bubbles with text-like lines on white. */
+function chatPng(width: number, height: number): Buffer {
+  const raw = Buffer.alloc((width * 3 + 1) * height, 255);
+  for (let y = 0; y < height; y++) {
+    const row = y * (width * 3 + 1);
+    raw[row] = 0;
+    const band = Math.floor(y / 160);
+    const inBubble = y % 160 > 20 && y % 160 < 140;
+    const left = band % 2 === 0;
+    const [x0, x1] = left ? [30, Math.floor(width * 0.7)] : [Math.floor(width * 0.3), width - 30];
+    for (let x = x0; inBubble && x < x1; x++) {
+      const textLine = (y % 160) % 28 > 16 && x > x0 + 20 && x < x1 - 20 && (x + band * 13) % 37 > 4;
+      const [r, g, b] = textLine ? [40, 40, 45] : left ? [233, 233, 235] : [0, 122, 255];
+      raw[row + 1 + x * 3] = r;
+      raw[row + 2 + x * 3] = g;
+      raw[row + 3 + x * 3] = b;
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(raw, { level: 6 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
 async function textPdf(title: string, pages: number, extraLines: string[] = []): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -69,7 +100,7 @@ async function imagePdf(pages: number, size: number): Promise<Uint8Array> {
 
 export default async function globalSetup() {
   mkdirSync(GENERATED, { recursive: true });
-  const marker = join(GENERATED, ".v3");
+  const marker = join(GENERATED, ".v4");
   if (existsSync(marker)) return;
 
   const months = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"];
@@ -85,6 +116,8 @@ export default async function globalSetup() {
   writeFileSync(join(GENERATED, "Statement bundle 2023.pdf"), await imagePdf(40, 260));
   // ~30 MB across 5 heavy pages (~6 MB each): must be re-rendered and compressed.
   writeFileSync(join(GENERATED, "Scanned bills 2024 (huge).pdf"), await imagePdf(5, 1400));
+  // A scrolling chat capture, 5:1: must be cut into three phone-screen-sized pages, not shrunk.
+  writeFileSync(join(GENERATED, "Chat with Sam (long).png"), chatPng(800, 4000));
 
   writeFileSync(marker, "ok");
 }

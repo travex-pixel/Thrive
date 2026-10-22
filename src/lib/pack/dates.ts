@@ -85,6 +85,12 @@ export function parseDateFromFileName(fileName: string, now: Date = new Date()):
     if (isPlausibleYear(y, now)) return `${y}-${my[1]}`;
   }
 
+  // 7. A lone year: "Lease 2023". Not for camera numbers ("IMG_2023.JPG") or broken full dates.
+  if (!/^(img|dsc|dscn|pxl|mvimg|photo|scan|doc)[\s_-]?\d/i.test(name)) {
+    const year = /(?<!\d[-_.]?)((?:19|20)\d{2})(?![-_.]?\d)/.exec(name);
+    if (year && isPlausibleYear(Number(year[1]), now)) return year[1];
+  }
+
   return null;
 }
 
@@ -110,6 +116,18 @@ export function normaliseDateInput(value: string): EvidenceDate {
 export function dateFromJsDate(date: Date | null | undefined): EvidenceDate {
   if (!date || Number.isNaN(date.getTime())) return null;
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * The date that may be printed on a PDF. Automatic dates (from photo data or a file name) can be wrong, so they only
+ * set the order until the applicant confirms them.
+ */
+export function printableDate(item: { date: EvidenceDate; dateSource: "exif" | "filename" | "user" | null }): EvidenceDate {
+  return item.dateSource === "user" ? item.date : null;
+}
+
+export function isUncheckedDate(item: { date: EvidenceDate; dateSource: "exif" | "filename" | "user" | null }): boolean {
+  return Boolean(item.date) && item.dateSource !== "user";
 }
 
 /** "15 Mar 2024", "Mar 2024", "2024" or "No date". */

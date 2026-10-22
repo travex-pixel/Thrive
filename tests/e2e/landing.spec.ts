@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { watchErrors, watchExternalRequests } from "./helpers";
+import { fixture, watchErrors, watchExternalRequests } from "./helpers";
 
 test.describe("landing page", () => {
   test("explains the offer and leads to the builder", async ({ page }) => {
@@ -8,13 +8,13 @@ test.describe("landing page", () => {
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your partner visa evidence, ready for ImmiAccount.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your partner visa evidence, sized and sorted for ImmiAccount.");
     await expect(page.getByText("A$29").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Is this immigration advice?" })).toHaveCount(0); // FAQ uses <summary>, not headings
     await page.getByText("Is this immigration advice?").click();
     await expect(page.getByText(/doesn’t tell you what evidence to\s+provide/)).toBeVisible();
 
-    await page.getByRole("link", { name: "Build my pack, free" }).first().click();
+    await page.getByRole("link", { name: "Try it free" }).first().click();
     await expect(page).toHaveURL(/\/build$/);
     await expect(page.getByRole("heading", { name: "Add your evidence" })).toBeVisible();
 
@@ -30,17 +30,28 @@ test.describe("landing page", () => {
     expect(bodySize).toBeGreaterThanOrEqual(17);
   });
 
-  test("sends strict security headers", async ({ request }) => {
+  test("sends one strict security policy on every page", async ({ request }) => {
     const res = await request.get("/");
     const csp = res.headers()["content-security-policy"];
     expect(csp).toContain("connect-src 'self'");
     expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).toContain("object-src 'none'");
     expect(res.headers()["x-content-type-options"]).toBe("nosniff");
     expect(res.headers()["x-powered-by"]).toBeUndefined();
 
-    const app = await request.get("/build");
-    expect(app.headers()["content-security-policy"]).toContain("connect-src 'self'");
+    // A browser keeps the first page's policy when moving between pages, so every page must allow what the
+    // builder needs (the HEIC decoder) and nothing more.
+    for (const path of ["/build", "/fix", "/privacy"]) {
+      expect((await request.get(path)).headers()["content-security-policy"], path).toBe(csp);
+    }
+  });
+
+  test("HEIC photos convert after arriving from the home page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: "Fix one file" }).first().click();
+    await expect(page).toHaveURL(/\/fix$/);
+    await page.getByTestId("fix-input").setInputFiles(fixture("IMG_5530.HEIC"));
+    await expect(page.getByRole("heading", { name: /^Done: under 5\sMB/ })).toBeVisible({ timeout: 60_000 });
   });
 
   test("legal pages and 404 render", async ({ page }) => {

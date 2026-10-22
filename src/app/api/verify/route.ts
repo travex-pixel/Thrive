@@ -1,5 +1,6 @@
 import { PRODUCT_CODE } from "@/lib/pack/limits";
 import { isSigningConfigured, signLicense } from "@/lib/server/license";
+import { isRateLimited } from "@/lib/server/rate-limit";
 import { CHECKOUT_SESSION_ID, getStripe } from "@/lib/server/stripe";
 
 const noStore = { "Cache-Control": "no-store" };
@@ -11,6 +12,10 @@ const noStore = { "Cache-Control": "no-store" };
  */
 export async function GET(request: Request) {
   const sessionId = new URL(request.url).searchParams.get("session_id") ?? "";
+  // The builder checks every few seconds while checkout is open in another tab; this stops anything heavier.
+  if (isRateLimited("verify", request, 240, 10 * 60_000)) {
+    return Response.json({ error: "rate_limited", message: "Too many checks. Please wait a minute." }, { status: 429, headers: noStore });
+  }
   if (!CHECKOUT_SESSION_ID.test(sessionId)) {
     return Response.json({ error: "invalid_session", message: "That unlock link isn’t valid." }, { status: 400, headers: noStore });
   }
@@ -21,7 +26,8 @@ export async function GET(request: Request) {
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    const paid = session.status === "complete" && session.payment_status === "paid";
+    // "no_payment_required" covers a 100%-off promotion code.
+    const paid = session.status === "complete" && (session.payment_status === "paid" || session.payment_status === "no_payment_required");
     if (!paid || session.metadata?.product !== PRODUCT_CODE) {
       return Response.json(
         { error: "not_paid", message: "We couldn’t confirm this payment yet. If you just paid, wait a moment and refresh." },

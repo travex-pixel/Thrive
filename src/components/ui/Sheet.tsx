@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 
 /**
  * A native <dialog> presented as a bottom sheet on phones and a centred card
@@ -24,11 +24,16 @@ export function Sheet({
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
+    // If this screen is hidden (e.g. kept in the background after navigating) or unmounted, never leave a modal
+    // dialog open: it would make the page the user is now looking at inert.
+    return () => {
+      if (dialog.open) dialog.close();
+    };
   }, [open]);
 
   return (

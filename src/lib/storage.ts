@@ -1,6 +1,6 @@
 "use client";
 
-import { createStore, del, get, set, clear, keys, type UseStore } from "idb-keyval";
+import { createStore, del, delMany, get, set, clear, keys, type UseStore } from "idb-keyval";
 import { isCategoryId } from "./pack/categories";
 import { DEFAULT_ATTACHMENT_LIMIT } from "./pack/limits";
 import type { EvidenceItem, PackSettings } from "./pack/types";
@@ -13,7 +13,7 @@ import type { EvidenceItem, PackSettings } from "./pack/types";
 export interface Workspace {
   version: 1;
   items: EvidenceItem[];
-  settings: PackSettings & { names: string };
+  settings: PackSettings & { names: string; limitConfirmed: boolean };
 }
 
 const WORKSPACE_KEY = "workspace";
@@ -38,8 +38,20 @@ export function defaultWorkspace(): Workspace {
   return {
     version: 1,
     items: [],
-    settings: { attachmentLimit: DEFAULT_ATTACHMENT_LIMIT, includeIndex: true, names: "" },
+    settings: { attachmentLimit: DEFAULT_ATTACHMENT_LIMIT, includeIndex: true, compactPhotos: false, startNumber: 1, names: "", limitConfirmed: false },
   };
+}
+
+/**
+ * Asks the browser not to clear our storage when space runs low. Browsers decide for themselves (Firefox may ask the
+ * user); it never hurts. Safari can still clear data for sites not visited in 7 days.
+ */
+export async function requestPersistence(): Promise<boolean> {
+  try {
+    return (await navigator.storage?.persist?.()) ?? false;
+  } catch {
+    return false;
+  }
 }
 
 /** Returns true if IndexedDB works in this browser session. */
@@ -69,6 +81,11 @@ function sanitiseWorkspace(value: unknown): Workspace {
   if (!Number.isFinite(settings.attachmentLimit) || settings.attachmentLimit < 1) {
     settings.attachmentLimit = DEFAULT_ATTACHMENT_LIMIT;
   }
+  settings.includeIndex = settings.includeIndex !== false;
+  settings.compactPhotos = settings.compactPhotos === true;
+  settings.startNumber = Number.isInteger(settings.startNumber) && settings.startNumber >= 1 && settings.startNumber <= 999 ? settings.startNumber : 1;
+  settings.names = typeof settings.names === "string" ? settings.names : "";
+  settings.limitConfirmed = settings.limitConfirmed === true;
   return { version: 1, items, settings };
 }
 
@@ -81,8 +98,12 @@ export async function loadWorkspace(): Promise<Workspace> {
     workspace.items = workspace.items.map((item) =>
       saved.has(fileKey(item.id)) || item.error
         ? item
-        : { ...item, error: "This file wasn’t fully saved before the page closed. Please remove it and add it again." },
+        : { ...item, error: "This file wasn’t fully saved in this browser. Please remove it and add it again." },
     );
+    // Delete file data nothing refers to any more (e.g. from a tab that closed before saving its list).
+    const wanted = new Set(workspace.items.map((item) => fileKey(item.id)));
+    const orphans = [...saved].filter((key) => key.startsWith("file:") && !wanted.has(key));
+    if (orphans.length > 0) void delMany(orphans, getStore()!).catch(() => undefined);
     return workspace;
   } catch {
     return defaultWorkspace();
@@ -94,13 +115,16 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
   await set(WORKSPACE_KEY, workspace, getStore()!);
 }
 
-export async function saveFile(id: string, file: Blob): Promise<void> {
+/** Returns false when the browser wouldn't store the file (usually storage full); it still works until the tab closes. */
+export async function saveFile(id: string, file: Blob): Promise<boolean> {
   memoryFiles.set(id, file);
-  if (!(await checkStorage())) return;
+  if (!(await checkStorage())) return false;
   try {
     await set(fileKey(id), file, getStore()!);
+    return true;
   } catch {
     // Quota exceeded: keep the in-memory copy so the current session still works.
+    return false;
   }
 }
 

@@ -22,11 +22,19 @@ export interface EvidenceItem {
   category: CategoryId;
   title: string;
   date: EvidenceDate;
-  /** True when the group was suggested from the file name and not yet confirmed. */
-  suggested?: boolean;
-  /** Source of the date, so we can show "from photo" etc. */
+  /** What the file looks like ("bank statement", "photo"), from its name. A label only: the user picks the group. */
+  docType?: import("./suggest").DocType | null;
+  /**
+   * Where the date came from. "exif" and "filename" are automatic and UNCONFIRMED: they are used for ordering but
+   * never printed on the PDFs until the user confirms them ("user").
+   */
   dateSource: "exif" | "filename" | "user" | null;
   addedAt: number;
+  /**
+   * True once the background check (page count, locks, photo date) has finished. The builder never relies on it:
+   * it reads page counts and locks from the file itself when it builds.
+   */
+  inspected?: boolean;
   pageCount?: number;
   /** Encrypted/permission-locked PDFs are re-rendered into clean copies. */
   encrypted?: boolean;
@@ -37,6 +45,10 @@ export interface EvidenceItem {
 export interface PackSettings {
   attachmentLimit: number;
   includeIndex: boolean;
+  /** Start photos one step down the quality ladder so more fit in each file. */
+  compactPhotos: boolean;
+  /** Number of the first file in this batch; above 1 when continuing after files already uploaded. */
+  startNumber: number;
 }
 
 export type PlannedDocKind = "index" | "merged" | "separate" | "passthrough";
@@ -59,5 +71,9 @@ export interface PackPlan {
   overLimit: boolean;
   usableItemCount: number;
   unsortedCount: number;
+  /** Automatic dates the user hasn't checked; they order files but aren't printed. */
+  uncheckedDateCount: number;
+  /** The pack is bigger than the lowest known limit and the user hasn't told us theirs yet. */
+  needsLimitCheck: boolean;
   warnings: string[];
 }

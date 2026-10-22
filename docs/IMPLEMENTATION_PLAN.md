@@ -15,7 +15,7 @@
 3. **Build**: date-ordered PDFs, each starting with a cover page. Captions on photo pages, an evidence index, auto-split
    under 5 MB, encrypted PDFs rasterised into clean copies, and an attachment count against the limit (60 by default; can be changed).
 4. **Download**: individual files plus a ZIP of everything.
-5. **Free single-file fixer**: any one file becomes an ImmiAccount-ready PDF under 5 MB.
+5. **Free single-file fixer**: any one file becomes a PDF or JPG under 5 MB, in an accepted format.
 6. **Monetisation**: building and previewing are free; packs of up to 10 files can be downloaded free. Larger packs need a
    one-off A$29 unlock (Stripe Checkout), and there is a "restore purchase" option.
 7. **Persistence**: the workspace (files and labels) is saved in this browser's IndexedDB, so a refresh or the payment

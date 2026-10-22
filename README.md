@@ -5,7 +5,7 @@ numbered, date-ordered PDFs. Every file is under ImmiAccount's 5 MB limit, each 
 evidence index. Everything runs **in the browser**: documents are never uploaded.
 
 - Free: the single-file fixer (`/fix`) and packs of up to 10 files.
-- A$29 one-off: unlimited packs and rebuilds (Stripe Checkout), with a 30-day money-back guarantee.
+- A$29 one-off: unlimited packs and rebuilds (Stripe Checkout), with a full refund within 30 days for any reason.
 
 Why this product, and the evidence behind it: [`docs/research/REPORT.md`](docs/research/REPORT.md).
 How to launch and sell it: [`docs/launch/`](docs/launch/).
@@ -22,24 +22,30 @@ Payments are optional locally. Without `STRIPE_SECRET_KEY` the unlock button exp
 | `npm run build` / `npm start` | Production build / server |
 | `npm run typecheck` | TypeScript |
 | `npm run lint` | ESLint (Next.js config) |
-| `npm test` | Unit tests (Vitest): dates, planning, naming, suggestions |
+| `npm test` | Unit tests (Vitest): dates, planning, naming, document types, ZIP writer |
 | `npm run test:e2e` | End-to-end tests (Playwright, Chromium) using real PDFs, HEIC, locked and oversized files |
 
 ## How it works
 ```
-Files ─▶ inspect (pages, locks, EXIF/file-name dates, group suggestion) ─▶ IndexedDB (this browser only)
-      ─▶ plan (groups → numbered files, attachment count)
-      ─▶ build: re-encode photos (HEIC/WEBP → JPEG), copy text PDFs (text stays selectable),
-                re-render locked/scan-heavy PDFs, add captions + contents pages,
-                save each file, MEASURE it, split/shrink until ≤ 5,000,000 bytes
-      ─▶ index PDF + ZIP
+Files ─▶ inspect (pages, locks, suggested dates, "looks like" document type) ─▶ IndexedDB (this browser only)
+      ─▶ sort: the applicant chooses a group per type (LodgeReady never decides where evidence belongs)
+      ─▶ plan (groups → numbered files, attachment count; asks for the applicant's own attachment limit)
+      ─▶ build: re-read every PDF's pages and locks, re-encode photos (HEIC/WEBP → JPEG, long screenshots cut
+                into pages), copy text PDFs (text stays selectable), re-render locked/scan-heavy PDFs,
+                add captions + contents pages, save each file, MEASURE it, split/shrink until ≤ 5,000,000 bytes
+      ─▶ index PDF + ZIP (assembled from Blobs, so a big pack isn't copied in memory)
 ```
+- Suggested dates (from photo data and file names) only set the order. A date is printed on a PDF only after the
+  applicant confirms it.
+- One tab owns the saved workspace at a time (Web Locks), so two open tabs can't overwrite each other.
+- Checkout opens in its own tab; the builder tab checks for the payment and unlocks itself, keeping the built pack.
 - `src/lib/pack/`: the engine (pure planning logic is unit-tested; browser work uses pdf-lib, pdf.js, heic2any, fflate).
 - `src/components/builder/`: the three-step builder UI (Add → Sort → Build).
 - `src/app/api/checkout` and `src/app/api/verify`: the **only** server code. They create a Stripe Checkout Session and
   confirm payment, then issue an HMAC-signed unlock token. There's no database.
-- `next.config.ts`: security headers. The Content-Security-Policy limits network connections to the site's own origin
-  (plus analytics, if configured), which is what enforces "nothing is uploaded".
+- `next.config.ts`: security headers. One Content-Security-Policy for every page limits network connections to the
+  site's own origin (plus analytics, if configured). The code never uploads files; the policy is a second line of
+  defence, not a guarantee against code the site itself serves.
 
 ## Design
 Built to Apple's Human Interface Guidelines:

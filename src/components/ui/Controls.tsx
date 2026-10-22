@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import { cx } from "./cx";
 
 /** iOS-style switch with a full 44pt hit area and the ARIA switch role. */
@@ -67,6 +67,7 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
   );
 }
 
+/** Segmented control with radio semantics: Tab moves in and out, arrow keys move between options. */
 export function SegmentedControl<T extends string>({
   value,
   options,
@@ -78,21 +79,44 @@ export function SegmentedControl<T extends string>({
   onChange: (value: T) => void;
   label: string;
 }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
+  const current = options.findIndex((o) => o.value === value);
+  const focusable = current >= 0 && !options[current].disabled ? current : enabled[0];
+
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const at = enabled.indexOf(index);
+    let next: number | undefined;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = enabled[(at + 1) % enabled.length];
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = enabled[(at - 1 + enabled.length) % enabled.length];
+    else if (event.key === "Home") next = enabled[0];
+    else if (event.key === "End") next = enabled[enabled.length - 1];
+    if (next === undefined) return;
+    event.preventDefault();
+    refs.current[next]?.focus();
+    onChange(options[next].value);
+  };
+
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex w-full rounded-[0.6875rem] bg-surface-2 p-0.5 sm:w-auto">
-      {options.map((o) => {
+      {options.map((o, index) => {
         const selected = o.value === value;
         return (
           <button
             key={o.value}
+            ref={(el) => {
+              refs.current[index] = el;
+            }}
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={index === focusable ? 0 : -1}
             disabled={o.disabled}
             onClick={() => onChange(o.value)}
+            onKeyDown={(event) => onKeyDown(event, index)}
             className={cx(
               "min-h-11 flex-1 rounded-[0.5625rem] px-3 text-[0.9375rem] font-medium transition-[background-color,box-shadow] sm:min-w-24",
-              selected ? "bg-raised text-label shadow-sm" : "text-label-2 hover:text-label",
+              selected ? "bg-segment text-label shadow-sm" : "text-label-2 hover:text-label",
               o.disabled && "cursor-not-allowed opacity-40",
             )}
           >

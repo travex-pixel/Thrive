@@ -48,7 +48,36 @@ export async function buildPack(page: Page) {
   const button = page.getByRole("button", { name: /^(Build|Rebuild) pack$/ });
   await expect(button).toBeEnabled();
   await button.click();
-  await expect(page.getByRole("heading", { name: "Your pack is ready" })).toBeVisible({ timeout: 180_000 });
+  await expect(page.getByRole("heading", { name: /^Your pack is ready/ })).toBeVisible({ timeout: 180_000 });
+}
+
+/** Uses "Sort by type": puts every unsorted file of a type into a group in one go. Keys are the type labels. */
+export async function sortByType(page: Page, groups: Record<string, string>) {
+  for (const [type, group] of Object.entries(groups)) {
+    await page.getByLabel(`Group for ${type}`, { exact: true }).selectOption(group);
+  }
+}
+
+/** Confirms every automatic date from the "Check dates" sheet. */
+export async function confirmAllDates(page: Page) {
+  await page.getByRole("button", { name: "Check dates" }).first().click();
+  const sheet = page.getByRole("dialog", { name: "Check dates" });
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("button", { name: /dates? (are|is) right$/ }).click();
+  await expect(sheet).toHaveCount(0);
+}
+
+/** All text in a PDF, page by page (pdf.js in Node). */
+export async function pdfText(bytes: Uint8Array): Promise<string> {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdf = await getDocument({ data: bytes.slice(), disableFontFace: true, useSystemFonts: false }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const content = await (await pdf.getPage(i)).getTextContent();
+    pages.push(content.items.map((item) => ("str" in item ? item.str : "")).join(" "));
+  }
+  await pdf.loadingTask.destroy();
+  return pages.join("\n");
 }
 
 export async function resultNames(page: Page): Promise<string[]> {
@@ -68,6 +97,8 @@ export async function downloadZip(page: Page): Promise<Record<string, Uint8Array
 export async function assertImmiReady(files: Record<string, Uint8Array>) {
   const pages: Record<string, number> = {};
   for (const [name, bytes] of Object.entries(files)) {
+    // Letters, numbers and underscores only: the safest names for any upload form.
+    expect(name, `${name} has unsafe characters`).toMatch(/^[A-Za-z0-9_]+\.[a-z]+$/);
     expect(bytes.length, `${name} is over 5 MB`).toBeLessThanOrEqual(IMMI_MAX_BYTES);
     expect(bytes.length, `${name} is empty`).toBeGreaterThan(0);
     if (name.endsWith(".pdf")) {

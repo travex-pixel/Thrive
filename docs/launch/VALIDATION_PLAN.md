@@ -1,13 +1,13 @@
-# Validation experiment: will couples pay A$29 to make their partner visa evidence ImmiAccount-ready?
+# Validation experiment: will couples pay A$29 to get their partner visa evidence sized and sorted for ImmiAccount?
 
 ## Hypothesis
 DIY partner-visa applicants who are 2–8 weeks from lodging will pay **A$29 once** for a private tool that turns their
-messy evidence into ImmiAccount-ready PDFs, **once they've seen their own pack built for free**.
+messy evidence into numbered PDFs sized for ImmiAccount, **once they've seen their own pack built for free**.
 
 ## The offer (what is live)
 - **Free:** the single-file fixer (unlimited), plus building, previewing and downloading packs of up to 10 files.
-- **A$29 one-off:** unlimited files and rebuilds on that device, a 30-day money-back guarantee, and an unlock link for other devices.
-- **Promise:** files never leave the device. Users can verify this by turning off Wi-Fi.
+- **A$29 one-off:** unlimited files and rebuilds in the browser where they pay, a full refund within 30 days if they change their mind, and an unlock link for other browsers and devices.
+- **Promise:** files never leave the device. Users can verify this by turning on Airplane mode once the page has loaded.
 
 ## Who counts as a qualified prospect
 Count someone as qualified only if **all** of these are true:

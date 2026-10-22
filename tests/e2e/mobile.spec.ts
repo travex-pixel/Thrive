@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addFiles, assertImmiReady, buildPack, downloadZip, fixture, generated } from "./helpers";
+import { addFiles, assertImmiReady, buildPack, downloadZip, fixture, generated, sortByType } from "./helpers";
 
 test.describe("phone-sized journey", () => {
   test("add, sort, build and download on a phone", async ({ page }) => {
@@ -15,7 +15,11 @@ test.describe("phone-sized journey", () => {
     expect(box.height).toBeGreaterThanOrEqual(44);
 
     await bar.click();
-    await page.getByLabel("Group for Screenshot 2025 01 09 at 21.14.03").selectOption("commitment");
+    await sortByType(page, {
+      "Couldn’t tell from the name": "commitment",
+      "Leases, property documents and mail": "household",
+      Photos: "social",
+    });
 
     // Long names never cause sideways scrolling.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -32,6 +36,6 @@ test.describe("phone-sized journey", () => {
     await buildPack(page);
     const files = await downloadZip(page);
     await assertImmiReady(files);
-    expect(Object.keys(files)).toContain("01 Household evidence.pdf");
+    expect(Object.keys(files)).toEqual(["00_Evidence_index.pdf", "01_Household_evidence.pdf", "02_Social_evidence.pdf", "03_Commitment_evidence.pdf"]);
   });
 });

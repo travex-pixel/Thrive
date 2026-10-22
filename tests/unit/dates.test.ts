@@ -25,6 +25,7 @@ describe("parseDateFromFileName", () => {
     ["Electricity bill Sept 2025.pdf", "2025-09"],
     ["lease 2023-07.pdf", "2023-07"],
     ["bill 07-2023.pdf", "2023-07"],
+    ["Lease 2023.pdf", "2023"],
   ])("%s -> %s", (name, expected) => {
     expect(parse(name)).toBe(expected);
   });
@@ -36,6 +37,8 @@ describe("parseDateFromFileName", () => {
     ["photo 2099-01-01.jpg"], // future
     ["scan 2024-02-30.pdf"], // invalid day, no fallback that fits
     ["mayday plan.pdf"],
+    ["IMG_2023.JPG"], // a camera number, not a year
+    ["Tax return 2019-20.pdf"],
   ])("%s -> null", (name) => {
     expect(parse(name)).toBeNull();
   });

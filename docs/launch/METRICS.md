@@ -19,19 +19,19 @@ If you skip this, the app works the same and sends no analytics at all. Use Stri
 | `landing_viewed` | Home page loads | `ref` |
 | `builder_opened` | /build loads | `files_bucket`, `unlocked`, `ref` |
 | `files_added` | Files are added | `count_bucket` |
-| `pack_built` | A build finishes | `files_bucket`, `docs`, `seconds_bucket` |
+| `pack_built` | A build finishes | `files_bucket`, `docs` (bucketed), `seconds_bucket` |
 | `build_failed` | A build errors | (none) |
 | `paywall_shown` | A locked pack is built | `files_bucket` |
 | `checkout_started` | Unlock is clicked | `files_bucket` |
-| `checkout_unavailable` | Payments aren't configured | (none) |
-| `purchase_verified` | /unlock confirms payment | (none) |
+| `checkout_unavailable` | Checkout refused (payments not configured, or the site address isn't allowed) | `result` (`503` or `403`) |
+| `purchase_verified` | /unlock confirms a payment, once per browser | `result` (`new` or `restore`) |
 | `download_clicked` | A single file or the ZIP is downloaded | `kind` |
 | `fixer_used` | The free fixer finishes | `kind`, `result` |
 
 `ref` comes from the `?ref=` code on the link someone followed, so you can see which channel worked.
 
 ## The funnel to watch (weekly)
-`landing_viewed → builder_opened → files_added → pack_built → paywall_shown → checkout_started → purchase_verified`
+`landing_viewed → builder_opened → files_added → pack_built → paywall_shown → checkout_started → purchase_verified (result=new)`
 
 **Diagnosis:**
 - A drop at **builder_opened**: weak landing or hero.

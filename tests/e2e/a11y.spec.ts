@@ -44,6 +44,13 @@ test.describe("accessibility", () => {
     expect(await axe(page)).toEqual([]);
     expect(await smallTargets(page)).toEqual([]);
 
+    // Check dates sheet
+    await page.getByRole("button", { name: "Check dates" }).click();
+    await expect(page.getByRole("dialog", { name: "Check dates" })).toBeVisible();
+    expect(await axe(page)).toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
     await page.getByRole("radio", { name: "3  Build" }).click();
     expect(await axe(page)).toEqual([]);
     expect(await smallTargets(page)).toEqual([]);
@@ -62,6 +69,19 @@ test.describe("accessibility", () => {
       await page.goto(path);
       expect(await axe(page), path).toEqual([]);
     }
+  });
+
+  test("keyboard: segmented controls move with the arrow keys", async ({ page }) => {
+    await page.goto("/build");
+    await addFiles(page, [generated("Passport - Alex.pdf")]);
+    const add = page.getByRole("radio", { name: "1  Add" });
+    const sort = page.getByRole("radio", { name: "2  Sort" });
+    await page.getByRole("radio", { name: "1  Add" }).click();
+    await add.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(sort).toHaveAttribute("aria-checked", "true");
+    await expect(sort).toBeFocused();
+    await expect(page.getByRole("heading", { name: "Sort your files" })).toBeVisible();
   });
 
   test("keyboard: can reach and operate the main actions", async ({ page }) => {

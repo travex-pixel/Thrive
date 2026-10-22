@@ -1,16 +1,19 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("payment API (Stripe not configured in tests)", () => {
-  test("checkout reports payments are not configured", async ({ request }) => {
-    const res = await request.post("/api/checkout", { data: {} });
+  test("checkout reports payments are not configured", async ({ request, baseURL }) => {
+    const res = await request.post("/api/checkout", { data: { flow: "tab" }, headers: { Origin: baseURL! } });
     expect(res.status()).toBe(503);
     expect((await res.json()).error).toBe("payments_not_configured");
     expect(res.headers()["cache-control"]).toContain("no-store");
   });
 
-  test("checkout rejects cross-site requests", async ({ request }) => {
+  test("checkout rejects cross-site requests, and requests that don't come from a page", async ({ request }) => {
     const res = await request.post("/api/checkout", { data: {}, headers: { Origin: "https://evil.example" } });
     expect(res.status()).toBe(403);
+    expect((await res.json()).message).toMatch(/Checkout only works from http:\/\/localhost/);
+    const noOrigin = await request.post("/api/checkout", { data: {} });
+    expect(noOrigin.status()).toBe(403);
   });
 
   test("verify rejects malformed session ids", async ({ request }) => {

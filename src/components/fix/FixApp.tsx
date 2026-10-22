@@ -6,7 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Notice, ProgressBar } from "@/components/ui/Controls";
 import { cx } from "@/components/ui/cx";
 import { captureRef, track } from "@/lib/analytics";
-import { downloadBytes, formatBytes } from "@/lib/download";
+import { downloadBlob, formatBytes } from "@/lib/download";
 import { BuildError, fixSingleFile, type FixedFile } from "@/lib/pack/build";
 import { isHeic } from "@/lib/pack/images";
 import { createItem, inspectItem } from "@/lib/pack/inspect";
@@ -44,10 +44,12 @@ export function FixApp() {
       });
       const notes: string[] = [];
       if (isHeic(file.name, file.type)) notes.push("Converted the iPhone HEIC photo to JPG, a format ImmiAccount accepts.");
-      if (item.kind === "image" && !isHeic(file.name, file.type)) notes.push("Optimised the photo and fixed its rotation.");
+      const sliced = item.kind === "image" && outputs[0]?.mimeType === "application/pdf";
+      if (sliced) notes.push("This long screenshot was cut into page-sized pieces in a PDF, so the text stays readable.");
+      else if (item.kind === "image" && !isHeic(file.name, file.type)) notes.push("Optimised the photo and fixed its rotation.");
       if (item.encrypted) notes.push("This PDF was locked or unusual, so it was re-rendered as a clean copy. It looks the same, but the text can’t be selected.");
       if (outputs.length > 1) notes.push(`It was too big for one upload, so it’s been split into ${outputs.length} parts, each under 5 MB.`);
-      if (item.kind === "pdf" && !item.encrypted && outputs.length === 1 && outputs[0].bytes.length === file.size) {
+      if (item.kind === "pdf" && !item.encrypted && outputs.length === 1 && outputs[0].size === file.size) {
         notes.push("This PDF was already under 5 MB and unlocked. It’s ready to upload as it is.");
       }
       setStatus({ state: "done", original: { name: file.name, size: file.size }, outputs, notes });
@@ -127,7 +129,7 @@ export function FixApp() {
             <div className="flex items-start gap-3">
               <CircleCheck className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
               <div className="min-w-0">
-                <h2 className="text-[1.25rem] font-semibold">Ready for ImmiAccount</h2>
+                <h2 className="text-[1.25rem] font-semibold">Done: under 5 MB, in an accepted format</h2>
                 <p className="truncate text-[0.9375rem] text-label-3">
                   {status.original.name} · was {formatBytes(status.original.size)}
                 </p>
@@ -147,9 +149,9 @@ export function FixApp() {
                     <FileText className="size-5 shrink-0 text-accent" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[0.9375rem] font-medium">{o.fileName}</p>
-                      <p className="text-[0.8125rem] tabular-nums text-label-3">{formatBytes(o.bytes.length)}</p>
+                      <p className="text-[0.8125rem] tabular-nums text-label-3">{formatBytes(o.size)}</p>
                     </div>
-                    <Button variant="secondary" onClick={() => downloadBytes(o.bytes, o.fileName, o.mimeType)} aria-label={`Download ${o.fileName}`}>
+                    <Button variant="secondary" onClick={() => downloadBlob(o.blob, o.fileName)} aria-label={`Download ${o.fileName}`}>
                       <Download className="size-5" aria-hidden="true" />
                       <span className="hidden sm:inline">Download</span>
                     </Button>

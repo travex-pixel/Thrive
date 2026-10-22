@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Terms and refunds" };
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms and refunds" updated="21 October 2026">
+    <LegalPage title="Terms and refunds" updated="22 October 2026">
       <p>
         These terms apply when you use LodgeReady, which is run by {operator.name}
         {operator.abn ? ` (ABN ${operator.abn})` : ""}. By using it, you agree to them.
@@ -31,23 +31,24 @@ export default function TermsPage() {
       <h2>Free use and the unlock</h2>
       <p>
         You can use the single-file fixer and build packs of up to {FREE_ITEM_LIMIT} files for free. A one-off payment of{" "}
-        {PRICE_LABEL} (including any GST that applies) unlocks unlimited packs and rebuilds for your personal use, in the
-        browser where you paid. Your unlock link can be used to switch it on in your other browsers. Please don’t share it
-        publicly.
+        {PRICE_LABEL} in Australian dollars (including GST, if any applies) unlocks unlimited packs and rebuilds for your
+        personal use in the browser where you pay. Your unlock link switches it on in your other browsers and devices.
+        Please don’t share it publicly.
       </p>
 
       <h2>Refunds</h2>
       <p>
-        If LodgeReady doesn’t work for you, contact <ContactLine /> within 30 days of buying and we’ll refund you in full, no
-        questions asked. Our goods and services come with guarantees that cannot be excluded under the Australian Consumer
-        Law, and nothing in these terms limits those rights.
+        Changed your mind? Email <ContactLine /> within 30 days of buying and we’ll refund you in full, for any reason. This
+        is in addition to your rights under the Australian Consumer Law: our services come with guarantees that cannot be
+        excluded, and nothing in these terms limits them.
       </p>
 
       <h2>Your files and our responsibility</h2>
       <p>
-        Files are processed and stored on your device, so keep your own copies of your original documents. To the extent
-        the law allows, and apart from the consumer guarantees above, we aren’t liable for indirect or consequential loss,
-        or for the outcome of any visa application.
+        Files are processed and stored on your device, so keep your own copies of your original documents. Dates and file
+        types that LodgeReady suggests are only suggestions: check them, and every file it makes, before you upload. To the
+        extent the law allows, and apart from the consumer guarantees above, we aren’t liable for indirect or consequential
+        loss, or for the outcome of any visa application.
       </p>
 
       <h2>Changes</h2>

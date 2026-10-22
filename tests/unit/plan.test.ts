@@ -22,16 +22,17 @@ function item(overrides: Partial<EvidenceItem> = {}): EvidenceItem {
   };
 }
 
-const settings = { attachmentLimit: 60, includeIndex: true };
+const settings = { attachmentLimit: 60, includeIndex: true, compactPhotos: false, startNumber: 1 };
 
 describe("naming", () => {
   it("derives readable titles", () => {
     expect(titleFromFileName("joint_bank-statement_Mar 2024.pdf")).toBe("joint bank statement Mar 2024");
     expect(titleFromFileName(".pdf")).toBe("Untitled");
   });
-  it("makes file-name-safe ASCII", () => {
-    expect(safeFileNamePart("Zoë’s passport / scan #2")).toBe("Zoe s passport scan 2");
-    expect(safeFileNamePart("你好")).toBe("File");
+  it("makes file-name-safe ASCII with underscores only", () => {
+    expect(safeFileNamePart("Zoë’s passport / scan #2")).toBe("Zoe_s_passport_scan_2");
+    expect(safeFileNamePart("Forms & statements (2024)")).toBe("Forms_statements_2024");
+    expect(safeFileNamePart("你好")).toBe("");
   });
 });
 
@@ -74,8 +75,12 @@ describe("estimateItemBytes", () => {
     expect(estimateItemBytes(item({ encrypted: true, pageCount: 4 }))).toBe(4 * 260_000);
   });
   it("assumes images shrink but never to nothing", () => {
-    expect(estimateItemBytes(item({ kind: "image", fileName: "a.jpg", size: 4_000_000 }))).toBe(900_000);
+    expect(estimateItemBytes(item({ kind: "image", fileName: "a.jpg", size: 3_000_000 }))).toBe(450_000);
+    expect(estimateItemBytes(item({ kind: "image", fileName: "a.jpg", size: 9_000_000 }))).toBe(600_000);
     expect(estimateItemBytes(item({ kind: "image", fileName: "a.jpg", size: 50_000 }))).toBe(120_000);
+  });
+  it("halves photo estimates with smaller photos", () => {
+    expect(estimateItemBytes(item({ kind: "image", fileName: "a.jpg", size: 3_000_000 }), true)).toBe(225_000);
   });
 });
 
@@ -91,21 +96,22 @@ describe("planPack", () => {
       settings,
     );
     expect(plan.docs.map((d) => d.fileName)).toEqual([
-      "00 Evidence index.pdf",
-      "01 Financial evidence.pdf",
-      "02 Social evidence.pdf",
-      "03 Identity - Passport Alex.pdf",
-      "04 Forms & statements - Relationship statement.docx",
+      "00_Evidence_index.pdf",
+      "01_Financial_evidence.pdf",
+      "02_Social_evidence.pdf",
+      "03_Identity_Passport_Alex.pdf",
+      "04_Forms_and_statements_Relationship_statement.docx",
     ]);
+    for (const doc of plan.docs) expect(doc.fileName).toMatch(/^[A-Za-z0-9_]+\.[a-z]+$/);
     expect(plan.attachmentCount).toBe(5);
     expect(plan.overLimit).toBe(false);
   });
 
   it("routes unsorted files into Other and warns", () => {
     const plan = planPack([item({ category: "unsorted" })], settings);
-    expect(plan.docs.map((d) => d.fileName)).toContain("01 Other evidence.pdf");
+    expect(plan.docs.map((d) => d.fileName)).toContain("01_Other_evidence.pdf");
     expect(plan.unsortedCount).toBe(1);
-    expect(plan.warnings.join(" ")).toMatch(/unsorted/);
+    expect(plan.warnings.join(" ")).toMatch(/into “Other”/);
   });
 
   it("leaves out unusable files and warns", () => {
@@ -116,17 +122,50 @@ describe("planPack", () => {
 
   it("flags when attachments exceed the limit", () => {
     const many = Array.from({ length: 5 }, () => item({ category: "identity" }));
-    const plan = planPack(many, { attachmentLimit: 3, includeIndex: false });
+    const plan = planPack(many, { ...settings, attachmentLimit: 3, includeIndex: false });
     expect(plan.attachmentCount).toBe(5);
     expect(plan.overLimit).toBe(true);
+    expect(plan.warnings.join(" ")).toMatch(/has 5 files and your limit is set to 3/);
+    // Mechanical options only: no advice about where documents belong.
+    expect(plan.warnings.join(" ")).not.toMatch(/merged group|separate files into/);
   });
 
   it("labels split parts", () => {
     const items = Array.from({ length: 12 }, () => item({ size: 1_000_000 }));
-    const plan = planPack(items, { attachmentLimit: 60, includeIndex: false });
+    const plan = planPack(items, { ...settings, includeIndex: false });
     const names = plan.docs.map((d) => d.fileName);
-    expect(names[0]).toMatch(/^01 Financial evidence \(part 1 of \d\)\.pdf$/);
+    expect(names[0]).toMatch(/^01_Financial_evidence_part1of\d\.pdf$/);
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("continues numbering after files already uploaded", () => {
+    const plan = planPack([item(), item({ category: "identity", title: "Passport" })], { ...settings, startNumber: 24 });
+    expect(plan.docs.map((d) => d.fileName)).toEqual([
+      "24_Evidence_index.pdf",
+      "25_Financial_evidence.pdf",
+      "26_Identity_Passport.pdf",
+    ]);
+    const noIndex = planPack([item()], { ...settings, startNumber: 24, includeIndex: false });
+    expect(noIndex.docs.map((d) => d.fileName)).toEqual(["24_Financial_evidence.pdf"]);
+  });
+
+  it("falls back to a generic name when a title has no Latin letters", () => {
+    const plan = planPack([item({ category: "identity", title: "护照" })], { ...settings, includeIndex: false });
+    expect(plan.docs[0].fileName).toBe("01_Identity_Document.pdf");
+    expect(plan.warnings.join(" ")).toMatch(/can’t print/);
+  });
+
+  it("counts automatic dates that haven't been checked", () => {
+    const plan = planPack(
+      [
+        item({ date: "2024-03-15", dateSource: "exif" }),
+        item({ date: "2024-03", dateSource: "filename" }),
+        item({ date: "2024-01-02", dateSource: "user" }),
+        item({ date: null, dateSource: null }),
+      ],
+      settings,
+    );
+    expect(plan.uncheckedDateCount).toBe(2);
   });
 
   it("returns an empty plan when nothing is usable", () => {

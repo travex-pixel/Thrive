@@ -1,18 +1,37 @@
 "use client";
 
-import { CircleCheck, Download, FileText, Info, LoaderCircle, Lock, RotateCcw, Settings2, ShieldCheck, TriangleAlert } from "lucide-react";
+import {
+  CalendarCheck,
+  CircleCheck,
+  Download,
+  ExternalLink,
+  FileText,
+  Info,
+  LoaderCircle,
+  Lock,
+  RotateCcw,
+  Settings2,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react";
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Notice, ProgressBar, SegmentedControl, Switch } from "@/components/ui/Controls";
 import { cx } from "@/components/ui/cx";
 import { Sheet } from "@/components/ui/Sheet";
-import type { BuiltFile } from "@/lib/pack/build";
+import type { BuiltFile, SkippedItem } from "@/lib/pack/build";
 import { formatBytes } from "@/lib/download";
-import { ATTACHMENT_LIMIT_PRESETS, FREE_ITEM_LIMIT, IMMI_MAX_BYTES, PRICE_LABEL } from "@/lib/pack/limits";
+import { ATTACH_HELP_URL, ATTACHMENT_LIMIT_PRESETS, FREE_ITEM_LIMIT, IMMI_MAX_BYTES, LOWEST_KNOWN_LIMIT, PRICE_LABEL } from "@/lib/pack/limits";
 import type { PackPlan } from "@/lib/pack/types";
 import type { BuildState, Settings } from "./state";
 
-export type CheckoutState = { status: "idle" } | { status: "loading" } | { status: "error"; message: string };
+export type CheckoutState =
+  | { status: "idle" }
+  | { status: "loading" }
+  /** Checkout is open in another tab; this page unlocks itself once payment is confirmed. */
+  | { status: "waiting"; checking: boolean }
+  | { status: "error"; message: string };
 
 const inputClass =
   "mt-1.5 block min-h-11 w-full rounded-[var(--radius-control)] border border-separator bg-surface px-3 text-[1.0625rem] text-label placeholder:text-label-3 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30";
@@ -25,7 +44,6 @@ export function BuildStep({
   build,
   stale,
   canDownload,
-  usableCount,
   checkout,
   onSettings,
   onBuild,
@@ -33,14 +51,15 @@ export function BuildStep({
   onDownload,
   onDownloadAll,
   onUnlock,
+  onCheckPayment,
   onRestore,
+  onCheckDates,
 }: {
   plan: PackPlan;
   settings: Settings;
   build: BuildState;
   stale: boolean;
   canDownload: boolean;
-  usableCount: number;
   checkout: CheckoutState;
   onSettings: (patch: Partial<Settings>) => void;
   onBuild: () => void;
@@ -48,7 +67,9 @@ export function BuildStep({
   onDownload: (file: BuiltFile) => void;
   onDownloadAll: () => void;
   onUnlock: () => void;
+  onCheckPayment: () => void;
   onRestore: () => void;
+  onCheckDates: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const resultsRef = useRef<HTMLHeadingElement>(null);
@@ -62,9 +83,21 @@ export function BuildStep({
     }
   }, [done]);
 
-  const paywall = !canDownload ? (
-    <Paywall usableCount={usableCount} checkout={checkout} onUnlock={onUnlock} onRestore={onRestore} />
+  const limitCheck = plan.needsLimitCheck ? (
+    <LimitCheck count={plan.attachmentCount} onSettings={onSettings} />
   ) : null;
+  const datesNotice =
+    plan.uncheckedDateCount > 0 ? (
+      <Notice tone="warning" icon={<CalendarCheck className="size-5 text-warning" aria-hidden="true" />}>
+        <p>
+          {plan.uncheckedDateCount} {plan.uncheckedDateCount === 1 ? "date hasn’t" : "dates haven’t"} been checked, so{" "}
+          {plan.uncheckedDateCount === 1 ? "it isn’t" : "they aren’t"} printed on your PDFs.
+        </p>
+        <Button variant="plain" className="-ml-4 mt-1" onClick={onCheckDates}>
+          Check dates
+        </Button>
+      </Notice>
+    ) : null;
 
   return (
     <div className="grid grid-cols-1 gap-5">
@@ -72,21 +105,28 @@ export function BuildStep({
         <>
           <section aria-labelledby="results-title" className={card}>
             <div className="flex items-start gap-3">
-              <CircleCheck className="mt-0.5 size-7 shrink-0 text-success" aria-hidden="true" />
+              {build.result.skipped.length > 0 ? (
+                <TriangleAlert className="mt-0.5 size-7 shrink-0 text-warning" aria-hidden="true" />
+              ) : (
+                <CircleCheck className="mt-0.5 size-7 shrink-0 text-success" aria-hidden="true" />
+              )}
               <div className="min-w-0 flex-1">
                 <h1 id="results-title" ref={resultsRef} tabIndex={-1} className="text-[1.5rem] font-semibold leading-tight outline-none">
-                  Your pack is ready
+                  {build.result.skipped.length > 0
+                    ? `Your pack is ready, but ${build.result.skipped.length} ${build.result.skipped.length === 1 ? "file was" : "files were"} left out`
+                    : "Your pack is ready"}
                 </h1>
                 <ResultSummary files={build.result.files} seconds={build.seconds} />
                 <div className="mt-1">
-                  <AttachmentMeter count={build.result.files.length} limit={settings.attachmentLimit} />
+                  <AttachmentMeter count={build.result.files.length} limit={settings.limitConfirmed ? settings.attachmentLimit : null} />
                 </div>
               </div>
             </div>
+            {build.result.skipped.length > 0 ? <SkippedList skipped={build.result.skipped} /> : null}
             {stale ? (
               <div className="mt-4">
                 <Notice tone="warning" icon={<RotateCcw className="size-5 text-warning" aria-hidden="true" />}>
-                  You’ve changed your files or settings since this build.{" "}
+                  You’ve changed your files or settings since this build, so downloads are paused.{" "}
                   <button type="button" onClick={onBuild} className="font-semibold text-accent underline underline-offset-2">
                     Rebuild
                   </button>{" "}
@@ -95,20 +135,25 @@ export function BuildStep({
               </div>
             ) : null}
           </section>
-          {paywall}
+          {limitCheck}
+          {!canDownload ? (
+            <Paywall itemCount={build.result.itemCount} checkout={checkout} onUnlock={onUnlock} onCheckPayment={onCheckPayment} onRestore={onRestore} />
+          ) : null}
           <FileList
             files={build.result.files}
             warnings={build.result.warnings}
             canDownload={canDownload}
+            stale={stale}
             onDownload={onDownload}
             onDownloadAll={onDownloadAll}
           />
+          {datesNotice}
         </>
       ) : (
         <>
           <div>
             <h1 className="text-[1.75rem] font-semibold leading-tight sm:text-[2rem]">Build your pack</h1>
-            <p className="mt-2 text-label-2">Here’s what you’ll get. Nothing is downloaded until you choose.</p>
+            <p className="mt-2 text-label-2">Here’s what you’ll get. Building happens on this device; nothing is uploaded.</p>
           </div>
 
           {build.status === "running" ? (
@@ -123,7 +168,9 @@ export function BuildStep({
               <div className="mt-3">
                 <ProgressBar value={build.progress.total ? build.progress.done / build.progress.total : 0} label="Building your pack" />
               </div>
-              <p className="mt-3 text-[0.8125rem] text-label-3">Working on your device. Keep this tab open.</p>
+              <p className="mt-3 text-[0.8125rem] text-label-3">
+                Working on your device. Keep this tab open and your screen on; big packs can take a few minutes.
+              </p>
             </section>
           ) : null}
 
@@ -138,12 +185,15 @@ export function BuildStep({
             </Notice>
           ) : null}
 
+          {limitCheck}
+          {datesNotice}
+
           <section aria-labelledby="plan-title" className={card}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h2 id="plan-title" className="text-[1.0625rem] font-semibold">
                 What you’ll get
               </h2>
-              <AttachmentMeter count={plan.attachmentCount} limit={plan.attachmentLimit} />
+              <AttachmentMeter count={plan.attachmentCount} limit={settings.limitConfirmed ? plan.attachmentLimit : null} />
             </div>
             <PlanWarnings warnings={plan.warnings} />
             <ul className="mt-3 divide-y divide-separator">
@@ -171,8 +221,8 @@ export function BuildStep({
 }
 
 function ResultSummary({ files, seconds }: { files: BuiltFile[]; seconds: number }) {
-  const total = files.reduce((n, f) => n + f.bytes.length, 0);
-  const largest = Math.max(...files.map((f) => f.bytes.length));
+  const total = files.reduce((n, f) => n + f.size, 0);
+  const largest = Math.max(...files.map((f) => f.size));
   return (
     <p className="mt-1 text-[0.9375rem] text-label-2">
       {files.length} {files.length === 1 ? "file" : "files"}, all under 5&nbsp;MB (largest {formatBytes(largest)}) ·{" "}
@@ -181,12 +231,82 @@ function ResultSummary({ files, seconds }: { files: BuiltFile[]; seconds: number
   );
 }
 
-function AttachmentMeter({ count, limit }: { count: number; limit: number }) {
+function AttachmentMeter({ count, limit }: { count: number; limit: number | null }) {
+  if (limit === null) {
+    return (
+      <span className="text-[0.875rem] font-medium tabular-nums text-label-3">
+        {count} {count === 1 ? "attachment" : "attachments"}
+      </span>
+    );
+  }
   const over = count > limit;
   return (
     <span className={cx("text-[0.875rem] font-medium tabular-nums", over ? "text-danger" : "text-label-3")}>
       {count} of {limit} attachments{over ? ": over your limit" : ""}
     </span>
+  );
+}
+
+function SkippedList({ skipped }: { skipped: SkippedItem[] }) {
+  return (
+    <div className="mt-4 rounded-xl bg-warning-tint px-4 py-3">
+      <p className="text-[0.9375rem] font-medium">Not in the pack:</p>
+      <ul className="mt-1 grid grid-cols-1 gap-1 text-[0.875rem]" data-testid="skipped">
+        {skipped.map((s) => (
+          <li key={s.itemId}>
+            <span className="font-medium">{s.title}</span>: {s.reason}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[0.8125rem] text-label-2">Fix these files and add them again, then rebuild.</p>
+    </div>
+  );
+}
+
+/** Asks for the user's own limit instead of assuming one: uploads can't be removed once added. */
+function LimitCheck({ count, onSettings }: { count: number; onSettings: (patch: Partial<Settings>) => void }) {
+  const [custom, setCustom] = useState("");
+  return (
+    <section aria-labelledby="limit-check-title" className="rounded-[var(--radius-card)] bg-warning-tint p-5">
+      <h2 id="limit-check-title" className="text-[1.0625rem] font-semibold">
+        Check your attachment limit
+      </h2>
+      <p className="mt-1 text-[0.9375rem] text-label-2">
+        This pack has {count} files. Home Affairs’ help says the number of files you can attach for each applicant is
+        between {LOWEST_KNOWN_LIMIT} and 60, depending on the application type. Attachments can’t be removed once added, so
+        check yours first.{" "}
+        <a href={ATTACH_HELP_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium text-accent underline underline-offset-2">
+          Home Affairs: attach documents
+          <ExternalLink className="size-3.5" aria-hidden="true" />
+        </a>
+      </p>
+      <p className="mt-3 text-[0.9375rem] font-medium">My limit is</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {ATTACHMENT_LIMIT_PRESETS.map((n) => (
+          <Button key={n} variant="secondary" onClick={() => onSettings({ attachmentLimit: n, limitConfirmed: true })}>
+            {n}
+          </Button>
+        ))}
+        <input
+          aria-label="Another limit"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={500}
+          placeholder="Other"
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          className={cx(inputClass, "!mt-0 w-28")}
+        />
+        <Button
+          variant="plain"
+          disabled={!(Number(custom) >= 1 && Number(custom) <= 500)}
+          onClick={() => onSettings({ attachmentLimit: Math.round(Number(custom)), limitConfirmed: true })}
+        >
+          Set
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -205,14 +325,16 @@ function PlanWarnings({ warnings }: { warnings: string[] }) {
 }
 
 function Paywall({
-  usableCount,
+  itemCount,
   checkout,
   onUnlock,
+  onCheckPayment,
   onRestore,
 }: {
-  usableCount: number;
+  itemCount: number;
   checkout: CheckoutState;
   onUnlock: () => void;
+  onCheckPayment: () => void;
   onRestore: () => void;
 }) {
   return (
@@ -224,32 +346,63 @@ function Paywall({
             Download your full pack: {PRICE_LABEL}, one-off
           </h2>
           <p className="mt-1 text-label-2">
-            You added {usableCount} files. Free packs can include up to {FREE_ITEM_LIMIT}. Unlock once for unlimited files and
-            rebuilds on this device.
+            This pack uses {itemCount} of your files. Free packs can use up to {FREE_ITEM_LIMIT}. Unlock once for unlimited
+            files and rebuilds in this browser.
           </p>
         </div>
       </div>
       <ul className="mt-4 grid grid-cols-1 gap-1.5 pl-8 text-[0.9375rem] text-label-2">
         <li>• Pay once. No subscription, no account.</li>
-        <li>• 30-day money-back guarantee.</li>
+        <li>• Changed your mind? Full refund within 30 days, for any reason.</li>
         <li>• Your files still never leave your device.</li>
       </ul>
-      {checkout.status === "error" ? (
-        <p className="mt-4 text-[0.9375rem] text-danger" role="alert">
-          {checkout.message}
-        </p>
-      ) : null}
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <Button size="lg" onClick={onUnlock} disabled={checkout.status === "loading"} className="sm:flex-1">
-          {checkout.status === "loading" ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <Lock className="size-5" aria-hidden="true" />}
-          {checkout.status === "loading" ? "Opening secure checkout…" : `Unlock for ${PRICE_LABEL}`}
-        </Button>
-        <Button size="lg" variant="plain" onClick={onRestore}>
-          Restore a purchase
-        </Button>
-      </div>
-      <p className="mt-3 flex items-center gap-1.5 text-[0.8125rem] text-label-3">
-        <ShieldCheck className="size-4 shrink-0" aria-hidden="true" /> Secure checkout by Stripe. We never see your card details.
+
+      {checkout.status === "waiting" ? (
+        <div className="mt-5 rounded-xl bg-accent-tint px-4 py-3" role="status">
+          <p className="flex items-center gap-2 font-medium">
+            <LoaderCircle className="size-5 animate-spin text-accent" aria-hidden="true" />
+            Waiting for your payment…
+          </p>
+          <p className="mt-1 text-[0.9375rem] text-label-2">
+            Finish paying in the Stripe tab. This page unlocks by itself, so you won’t need to rebuild.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={onCheckPayment} disabled={checkout.checking}>
+              {checkout.checking ? "Checking…" : "I’ve paid"}
+            </Button>
+            <Button variant="plain" onClick={onUnlock}>
+              Open checkout again
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {checkout.status === "error" ? (
+            <p className="mt-4 text-[0.9375rem] text-danger" role="alert">
+              {checkout.message}
+            </p>
+          ) : null}
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button size="lg" onClick={onUnlock} disabled={checkout.status === "loading"} className="sm:flex-1">
+              {checkout.status === "loading" ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <Lock className="size-5" aria-hidden="true" />}
+              {checkout.status === "loading" ? "Opening secure checkout…" : `Unlock for ${PRICE_LABEL}`}
+            </Button>
+            <Button size="lg" variant="plain" onClick={onRestore}>
+              Restore a purchase
+            </Button>
+          </div>
+        </>
+      )}
+      <p className="mt-3 flex items-start gap-1.5 text-[0.8125rem] text-label-3">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span>
+          Secure checkout by Stripe, in a new tab. We never see your card details. By paying you agree to the{" "}
+          <Link href="/terms" target="_blank" className="text-accent underline">
+            terms
+          </Link>
+          . LodgeReady is a document tool: it doesn’t check whether your evidence is enough, and isn’t affiliated with Home
+          Affairs.
+        </span>
       </p>
     </section>
   );
@@ -259,15 +412,18 @@ function FileList({
   files,
   warnings,
   canDownload,
+  stale,
   onDownload,
   onDownloadAll,
 }: {
   files: BuiltFile[];
   warnings: string[];
   canDownload: boolean;
+  stale: boolean;
   onDownload: (file: BuiltFile) => void;
   onDownloadAll: () => void;
 }) {
+  const usable = canDownload && !stale;
   return (
     <section aria-labelledby="files-title" className={card}>
       <h2 id="files-title" className="text-[1.0625rem] font-semibold">
@@ -290,23 +446,25 @@ function FileList({
             <div className="min-w-0 flex-1">
               <p className="truncate text-[0.9375rem] font-medium">{f.fileName}</p>
               <p className="text-[0.8125rem] tabular-nums text-label-3">
-                {formatBytes(f.bytes.length)}
+                {formatBytes(f.size)}
                 {f.pageCount ? ` · ${f.pageCount} ${f.pageCount === 1 ? "page" : "pages"}` : ""}
                 {f.entries.length > 1 ? ` · ${f.entries.length} documents` : ""}
               </p>
             </div>
-            <Button
-              variant="plain"
-              onClick={() => onDownload(f)}
-              aria-label={canDownload ? `Download ${f.fileName}` : `Unlock to download ${f.fileName}`}
-              className="shrink-0"
-            >
-              {canDownload ? <Download className="size-5" aria-hidden="true" /> : <Lock className="size-5" aria-hidden="true" />}
-            </Button>
+            {usable ? (
+              <Button variant="plain" onClick={() => onDownload(f)} aria-label={`Download ${f.fileName}`} className="shrink-0">
+                <Download className="size-5" aria-hidden="true" />
+              </Button>
+            ) : (
+              <span className="inline-flex shrink-0 items-center gap-1 text-[0.8125rem] font-medium text-label-3">
+                {stale ? <RotateCcw className="size-4" aria-hidden="true" /> : <Lock className="size-4" aria-hidden="true" />}
+                {stale ? "Rebuild" : "Locked"}
+              </span>
+            )}
           </li>
         ))}
       </ul>
-      {canDownload ? (
+      {usable ? (
         <div className="mt-4 grid grid-cols-1 gap-3">
           <Button size="lg" onClick={onDownloadAll} className="w-full sm:w-auto sm:justify-self-start">
             <Download className="size-5" aria-hidden="true" />
@@ -314,7 +472,8 @@ function FileList({
           </Button>
           <p className="text-[0.8125rem] text-label-3">
             ImmiAccount doesn’t accept .zip files, so unzip first and upload the files in number order. Open the index to check
-            everything is there before you submit.
+            everything is there before you submit. Already uploaded some files? Don’t upload them again: next time, build only
+            the new files and set “First file number” in settings.
           </p>
         </div>
       ) : null}
@@ -324,8 +483,10 @@ function FileList({
 
 function SettingsSummary({ settings, onEdit }: { settings: Settings; onEdit: () => void }) {
   const parts = [
-    `Limit ${settings.attachmentLimit} attachments`,
+    settings.limitConfirmed ? `limit ${settings.attachmentLimit}` : "limit not set",
     settings.includeIndex ? "index on" : "no index",
+    settings.compactPhotos ? "smaller photos" : null,
+    settings.startNumber > 1 ? `numbering from ${settings.startNumber}` : null,
     settings.names.trim() ? `names: ${settings.names.trim()}` : null,
   ].filter(Boolean);
   return (
@@ -354,9 +515,10 @@ function SettingsSheet({
 }) {
   const namesId = useId();
   const limitId = useId();
+  const startId = useId();
   const isPreset = (ATTACHMENT_LIMIT_PRESETS as readonly number[]).includes(settings.attachmentLimit);
-  const [customLimit, setCustomLimit] = useState(!isPreset);
-  const limitChoice = customLimit ? "custom" : String(settings.attachmentLimit);
+  const [customLimit, setCustomLimit] = useState(settings.limitConfirmed && !isPreset);
+  const limitChoice = !settings.limitConfirmed ? "unset" : customLimit ? "custom" : String(settings.attachmentLimit);
 
   return (
     <Sheet
@@ -377,9 +539,12 @@ function SettingsSheet({
           label="Attachment limit per applicant"
           value={limitChoice}
           onChange={(v) => {
-            if (v === "custom") return setCustomLimit(true);
+            if (v === "custom") {
+              setCustomLimit(true);
+              return onSettings({ limitConfirmed: true });
+            }
             setCustomLimit(false);
-            onSettings({ attachmentLimit: Number(v) });
+            onSettings({ attachmentLimit: Number(v), limitConfirmed: true });
           }}
           options={[
             ...ATTACHMENT_LIMIT_PRESETS.map((n) => ({ value: String(n), label: String(n) })),
@@ -396,15 +561,18 @@ function SettingsSheet({
             value={settings.attachmentLimit}
             onChange={(e) => {
               const n = Math.round(Number(e.target.value));
-              if (Number.isFinite(n) && n >= 1 && n <= 500) onSettings({ attachmentLimit: n });
+              if (Number.isFinite(n) && n >= 1 && n <= 500) onSettings({ attachmentLimit: n, limitConfirmed: true });
             }}
             className={cx(inputClass, "!mt-0 w-28")}
           />
         ) : null}
       </div>
       <p className="mt-2 text-[0.8125rem] text-label-3">
-        Home Affairs says the limit depends on the application type. Many guides cite 60, or 100 for partner applications. Use
-        what your ImmiAccount shows.
+        Home Affairs’ help says this is between 30 and 60 files, depending on the application type. Check yours before you
+        upload.{" "}
+        <a href={ATTACH_HELP_URL} target="_blank" rel="noreferrer" className="text-accent underline">
+          Home Affairs: attach documents
+        </a>
       </p>
       <div className="mt-4 border-t border-separator pt-3">
         <Switch
@@ -413,6 +581,36 @@ function SettingsSheet({
           label="Add an evidence index"
           description="A first file that lists every document in the pack"
         />
+      </div>
+      <div className="mt-1 border-t border-separator pt-3">
+        <Switch
+          checked={settings.compactPhotos}
+          onChange={(compactPhotos) => onSettings({ compactPhotos })}
+          label="Smaller photos"
+          description="Fits about twice as many photos in each file, so the pack needs fewer attachments"
+        />
+      </div>
+      <div className="mt-1 border-t border-separator pt-4">
+        <label htmlFor={startId} className="block text-[0.9375rem] font-medium">
+          First file number
+        </label>
+        <input
+          id={startId}
+          className={cx(inputClass, "w-28")}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={999}
+          value={settings.startNumber}
+          onChange={(e) => {
+            const n = Math.round(Number(e.target.value));
+            if (Number.isFinite(n) && n >= 1 && n <= 999) onSettings({ startNumber: n });
+          }}
+        />
+        <p className="mt-1 text-[0.8125rem] text-label-3">
+          Leave at 1 for a new pack. Adding to files you’ve already uploaded (say 00 to 23)? Build only the new files and
+          enter 24, so the numbers carry on.
+        </p>
       </div>
       <div className="mt-3 border-t border-separator pt-4">
         <label htmlFor={namesId} className="block text-[0.9375rem] font-medium">
