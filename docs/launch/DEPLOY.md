@@ -46,6 +46,20 @@ terms yourself.
 
 4. Deploy. Changing an environment variable later requires a redeploy (**Deploys → Trigger deploy**).
 
+## 2b. Vercel (alternative) — free for a preview, paid once you sell
+Vercel runs this app without changes. Its free **Hobby plan is for personal, non-commercial use**, so it's fine for
+looking at the site, but taking payments there means the **Pro plan (about US$20 a month)**, which needs your approval.
+To preview:
+1. Sign in at vercel.com with GitHub → **Add New → Project** → import `travex-pixel/Thrive`.
+2. Framework: Next.js (detected). Leave the build settings as they are; Node 22 comes from `package.json`.
+3. Deploy. The project's production branch is the repo's default branch, so to see this work either open the
+   **preview deployment** for branch `ccr-ad122ae0-am60ag` (previews are private to your Vercel account by default),
+   or set Settings → Git → Production Branch to that branch.
+4. A **production** deployment stops on purpose unless `NEXT_PUBLIC_OPERATOR_NAME` and `NEXT_PUBLIC_SUPPORT_EMAIL` are
+   set (Settings → Environment Variables), exactly as on Netlify. Previews don't need them.
+5. Payments stay off until `STRIPE_SECRET_KEY` and `LICENSE_SIGNING_SECRET` are set; the Unlock button says so.
+   Checkout accepts Vercel's own deployment addresses automatically; add a custom domain to `SITE_URL`.
+
 ## 3. Smoke test on the live site (before telling anyone)
 - [ ] The home page loads on your phone and on a computer, in light and dark mode.
 - [ ] `/fix`: drop an iPhone photo and download the JPG.

@@ -8,7 +8,8 @@ const buckets = new Map<string, { count: number; resetAt: number }>();
 
 export function clientKey(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return request.headers.get("x-nf-client-connection-ip") ?? forwarded ?? "unknown";
+  // Netlify and Vercel each set their own header with the visitor's IP; x-forwarded-for is the fallback.
+  return request.headers.get("x-nf-client-connection-ip") ?? request.headers.get("x-real-ip") ?? forwarded ?? "unknown";
 }
 
 /** Returns true when this client has made more than `limit` requests in the window. */

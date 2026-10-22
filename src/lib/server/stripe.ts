@@ -31,7 +31,11 @@ function normalise(origin: string): string | null {
  *   ALLOWED_ORIGINS  optional extra addresses, comma-separated
  */
 export function allowedOrigins(request: Request): string[] {
-  const configured = [process.env.SITE_URL, process.env.NEXT_PUBLIC_SITE_URL, ...(process.env.ALLOWED_ORIGINS ?? "").split(",")]
+  // Vercel exposes the addresses of the current deployment, so previews work without extra settings.
+  const vercel = [process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_URL]
+    .filter((host): host is string => Boolean(host))
+    .map((host) => `https://${host}`);
+  const configured = [process.env.SITE_URL, process.env.NEXT_PUBLIC_SITE_URL, ...(process.env.ALLOWED_ORIGINS ?? "").split(","), ...vercel]
     .filter((v): v is string => Boolean(v && v.trim()))
     .map(normalise)
     .filter((v): v is string => Boolean(v));

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Turn partner visa evidence into ImmiAccount-ready PDFs, entirely on your device.",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "postinstall": "node scripts/copy-vendor-assets.mjs",
     "dev": "next dev",

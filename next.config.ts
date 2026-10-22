@@ -5,9 +5,9 @@ const analyticsHost = process.env.NEXT_PUBLIC_POSTHOG_KEY
   ? (process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com").replace(/\/$/, "")
   : null;
 
-// The legal pages and checkout must name a real operator and contact before the live site goes up (Netlify sets
-// CONTEXT=production for the live site; previews and local builds are unaffected).
-if (process.env.CONTEXT === "production") {
+// The legal pages and checkout must name a real operator and contact before the live site goes up. Netlify sets
+// CONTEXT=production and Vercel sets VERCEL_ENV=production for the live site; previews and local builds are unaffected.
+if (process.env.CONTEXT === "production" || process.env.VERCEL_ENV === "production") {
   const missing = ["NEXT_PUBLIC_OPERATOR_NAME", "NEXT_PUBLIC_SUPPORT_EMAIL"].filter((key) => !process.env[key]?.trim());
   if (missing.length > 0) throw new Error(`Set ${missing.join(" and ")} before deploying to production (see docs/launch/DEPLOY.md).`);
 }
