@@ -58,6 +58,9 @@ To preview:
 4. A **production** deployment stops on purpose unless `NEXT_PUBLIC_OPERATOR_NAME` and `NEXT_PUBLIC_SUPPORT_EMAIL` are
    set (Settings → Environment Variables), exactly as on Netlify. Previews don't need them.
 5. Payments stay off until `STRIPE_SECRET_KEY` and `LICENSE_SIGNING_SECRET` are set; the Unlock button says so.
+6. **"No Production Deployment" and a production branch that doesn't exist?** Vercel picked the branch at import time.
+   Change it under Settings → Git → Production Branch to `ccr-ad122ae0-am60ag` (after adding the two operator variables),
+   or just open the latest **Preview** deployment of that branch from the Deployments tab: every push creates one.
    Checkout accepts Vercel's own deployment addresses automatically; add a custom domain to `SITE_URL`.
 
 ## 3. Smoke test on the live site (before telling anyone)
